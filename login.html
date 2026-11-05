@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" data-cx-noshell>
+<head>
+<meta charset="UTF-8">
+<!-- Catalistics: shared settings (storage, targets, links). Must load before the page scripts. -->
+<script src="catalistics-settings.js" onerror="this.remove()"></script>
+<script src="catalistics-config.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in · Catalistics</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 480px); background: #fff; color: var(--cx-text); font-size: 14px; }
+  .brand { background: var(--cx-navy); display: flex; align-items: center; justify-content: center; padding: 48px; }
+  .brand img { width: min(440px, 80%); height: auto; }
+  .form { display: flex; flex-direction: column; justify-content: center; padding: 48px; }
+  h1 { font-size: 24px; line-height: 32px; margin: 0 0 4px; }
+  p.sub { margin: 0 0 24px; color: var(--cx-text-2); }
+  label { display: block; font-weight: 700; font-size: 13px; margin: 0 0 4px; }
+  input { width: 100%; height: 36px; padding: 0 10px; font: 14px var(--cx-font); margin-bottom: 16px; }
+  button { width: 100%; height: 36px; font: 700 14px var(--cx-font); cursor: pointer; }
+  .err { display: none; background: var(--cx-error-soft); border: 1px solid #F3B7AA; color: #8A1F0B; padding: 10px 12px; margin-bottom: 16px; font-size: 13px; }
+  .foot { margin-top: 24px; font-size: 12px; color: var(--cx-text-3); }
+  .foot a { color: var(--cx-info); }
+  @media (max-width: 760px) { body { grid-template-columns: 1fr; } .brand { padding: 28px; } .brand img { width: 220px; } .form { padding: 28px 20px; } }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="catalistics-theme.css">
+<script src="catalistics-shell.js" defer></script>
+</head>
+<body>
+  <div class="brand"><img src="assets/catalistics-logo.png" alt="Catalistics - Data. Insight. Impact."></div>
+  <div class="form">
+    <h1>Sign in</h1>
+    <p class="sub">Use the e-mail address and password your administrator set up for you.</p>
+    <div class="err" id="err"></div>
+    <form id="f">
+      <label for="email">E-mail address</label>
+      <input id="email" type="email" autocomplete="username" required>
+      <label for="pw">Password</label>
+      <input id="pw" type="password" autocomplete="current-password" required>
+      <button type="submit" class="cx-btn-primary" id="go">Sign in</button>
+    </form>
+    <div class="foot">Accounts are managed in Firebase Authentication. Each account also needs a document in the <code>users</code> collection (with a <code>role</code>). <a href="storage.html">Storage &amp; settings</a></div>
+  </div>
+<script type="module">
+  import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  const app = getApps().find(a => a.name === '[DEFAULT]') || initializeApp(CATALISTICS.firebaseConfig('primary'));
+  const auth = getAuth(app);
+  const err = document.getElementById('err');
+  const back = new URLSearchParams(location.search).get('next') || (document.referrer && new URL(document.referrer).origin === location.origin ? document.referrer : 'index.html');
+  if (!CATALISTICS.isConfigured('primary')) { err.style.display = 'block'; err.textContent = 'Data storage is not connected yet. Add your Firebase details on Storage & settings first.'; }
+  document.getElementById('f').addEventListener('submit', async e => {
+    e.preventDefault();
+    err.style.display = 'none';
+    const btn = document.getElementById('go'); btn.disabled = true; btn.textContent = 'Signing in…';
+    try {
+      await signInWithEmailAndPassword(auth, document.getElementById('email').value.trim(), document.getElementById('pw').value);
+      location.href = back;
+    } catch (ex) {
+      err.style.display = 'block';
+      err.textContent = /invalid|wrong|not-found|credential/i.test(ex.code || ex.message) ? 'That e-mail address and password do not match an account.' : 'Could not sign in: ' + (ex.message || ex);
+      btn.disabled = false; btn.textContent = 'Sign in';
+    }
+  });
+</script>
+</body>
+</html>

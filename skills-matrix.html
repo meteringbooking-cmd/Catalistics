@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<!-- Catalistics: shared settings (storage, targets, links). Must load before the page scripts. -->
+<script src="catalistics-settings.js" onerror="this.remove()"></script>
+<script src="catalistics-config.js"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skills Matrix · Catalistics</title>
+    <style>
+        :root {
+            --bg: #F2F3F3;
+            --surface: #FFFFFF;
+            --border: #D5DBDB;
+            --border-hi: #D5DBDB;
+            --amber: #FF9900;
+            --amber-dim: #8D6605;
+            --cyan: #067F68;
+            --text:      #E8ECHO4;
+            --text-mid: #545B64;
+            --text-dim: #0972D3;
+            --text-faint: #3D5168;
+            --danger: #D13212;
+            --success: #067F68;
+            --warning: #FF9900;
+            --contractor: #0972D3;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { height: 100%; }
+
+        body {
+            font-family: var(--cx-font);
+            background: #F2F3F3;
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: linear-gradient(#FFF7E8 1px, transparent 1px),
+                linear-gradient(90deg, #FFF7E8 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: -200px; left: 50%;
+            transform: translateX(-50%);
+            width: 800px; height: 600px;
+            background: radial-gradient(ellipse, #FFF7E8 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── TOPBAR ── */
+        .topbar {
+            position: relative; z-index: 10;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 48px; height: 64px;
+            border-bottom: 1px solid var(--border);
+            background: #F2F3F3;
+            backdrop-filter: blur(12px);
+            animation: fadeDown 0.6s ease both;
+        }
+        .topbar-brand { display: flex; align-items: center; gap: 12px; }
+        .brand-mark {
+            width: 32px; height: 32px;
+            background: var(--amber);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        }
+        .brand-name {
+            font-family: var(--cx-font);
+            font-size: 1.25rem; font-weight: 700;
+            letter-spacing: 0.12em; text-transform: uppercase; color: var(--text);
+        }
+        .brand-name span { color: var(--amber); }
+        .topbar-right { display: flex; align-items: center; gap: 20px; }
+        .back-link {
+            font-family: var(--cx-font); font-size: 0.72rem;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: var(--text-mid); text-decoration: none;
+            border: 1px solid var(--border); padding: 0.35rem 0.8rem;
+            border-radius: 4px; transition: all 0.2s ease;
+        }
+        .back-link:hover { color: var(--amber); border-color: var(--amber); }
+
+        /* ── PAGE HERO ── */
+        .hero {
+            position: relative; z-index: 10;
+            padding: 48px 48px 32px;
+            animation: fadeUp 0.7s ease 0.1s both;
+        }
+        .hero-label {
+            font-family: var(--cx-font); font-size: 0.7rem;
+            letter-spacing: 0.18em; text-transform: uppercase;
+            color: var(--amber); margin-bottom: 12px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .hero-label::before { content: ''; display: block; width: 24px; height: 1px; background: var(--amber); }
+        .hero-title {
+            font-family: var(--cx-font);
+            font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 900;
+            line-height: 0.95; letter-spacing: -0.01em;
+            text-transform: uppercase; color: var(--text); margin-bottom: 12px;
+        }
+        .hero-title em { font-style: normal; color: var(--amber); }
+        .hero-sub { font-size: 0.95rem; font-weight: 300; color: var(--text-mid); }
+
+        /* ── CONTENT WRAPPER ── */
+        .content {
+            position: relative; z-index: 10;
+            padding: 0 48px 48px;
+            flex: 1;
+        }
+
+        /* ── CONTROLS BAR ── */
+        .controls-bar {
+            display: flex; align-items: flex-end; gap: 16px;
+            flex-wrap: wrap;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            animation: fadeUp 0.6s ease 0.2s both;
+        }
+        .ctrl-group { display: flex; flex-direction: column; gap: 8px; }
+        .ctrl-label {
+            font-family: var(--cx-font); font-size: 0.65rem;
+            letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim);
+        }
+        .ctrl-input {
+            background: var(--bg); border: 1px solid var(--border);
+            color: var(--text); padding: 0.6rem 1rem;
+            border-radius: 4px; font-family: var(--cx-font);
+            font-size: 0.85rem; transition: border 0.2s;
+            min-width: 220px;
+        }
+        .ctrl-input:focus { outline: none; border-color: var(--amber); }
+        .ctrl-actions { display: flex; gap: 10px; align-items: flex-end; margin-left: auto; }
+
+        /* ── LEGEND / STATS ── */
+        .stat-row {
+            display: flex; gap: 12px; flex-wrap: wrap;
+            margin-bottom: 20px;
+            animation: fadeUp 0.6s ease 0.22s both;
+        }
+        .stat-chip {
+            display: flex; align-items: center; gap: 10px;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 4px; padding: 12px 18px;
+        }
+        .stat-chip .n {
+            font-family: var(--cx-font); font-weight: 500; font-size: 1.3rem;
+        }
+        .stat-chip .l {
+            font-family: var(--cx-font); font-size: 0.65rem;
+            letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim);
+        }
+        .stat-chip.overdue .n { color: var(--danger); }
+        .stat-chip.soon .n { color: var(--amber); }
+        .stat-chip.booked .n { color: var(--cyan); }
+        .stat-chip.attended .n { color: #8456CE; }
+
+        /* ── MESSAGE ── */
+        .message {
+            padding: 12px 16px; border-radius: 4px;
+            font-family: var(--cx-font); font-size: 0.8rem;
+            margin-bottom: 16px; display: none;
+            animation: fadeUp 0.3s ease both;
+        }
+        .message.show { display: block; }
+        .message.success { background: #F0F8F6; color: var(--cyan); border: 1px solid rgba(6,127,104,0.35); }
+        .message.error   { background: #FDF3F1; color: var(--danger); border: 1px solid rgba(209,50,18,0.35); }
+        .message.warning { background: #FFF7E8; color: var(--amber); border: 1px solid rgba(255,153,0,0.35); }
+
+        /* ── TABLE ── */
+        .table-wrap {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px; overflow: hidden;
+            animation: fadeUp 0.6s ease 0.3s both;
+        }
+        .table-scroll { overflow-x: auto; }
+
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            background: #FAFAFA;
+            padding: 12px 10px;
+            text-align: left;
+            font-family: var(--cx-font);
+            font-size: 0.62rem; letter-spacing: 0.1em;
+            text-transform: uppercase; color: var(--text-dim);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        thead th:first-child { padding-left: 20px; position: sticky; left: 0; background: #FAFAFA; z-index: 2; }
+
+        tbody tr {
+            border-bottom: 1px solid rgba(42,63,85,0.75);
+            transition: background 0.15s;
+        }
+        tbody tr:nth-child(even) { background: rgba(0,28,36,0.014); }
+        tbody tr:nth-child(even) td:first-child { background: #FFFFFF; }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: #FFF7E8; }
+        tbody tr:hover td:first-child { background: #FFFFFF; }
+
+        td {
+            padding: 8px 10px;
+            vertical-align: middle;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+        td:first-child {
+            padding-left: 20px;
+            position: sticky; left: 0;
+            background: var(--surface);
+            z-index: 1;
+        }
+
+        .eng-name { font-weight: 600; color: var(--text); font-size: 0.9rem; }
+        .eng-ref { font-family: var(--cx-font); font-size: 0.74rem; color: var(--text-mid); }
+
+        .ref-cell {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: transparent; border: 1px solid transparent;
+            border-radius: 4px; padding: 5px 9px;
+            font-family: var(--cx-font); font-size: 0.74rem;
+            color: var(--text-mid); cursor: pointer;
+            transition: all 0.15s;
+        }
+        .ref-cell:hover { border-color: var(--border-hi); background: rgba(0,28,36,0.024); color: var(--text); }
+        .ref-cell.empty { color: var(--text-faint); font-style: italic; }
+        .ref-cell .pencil { opacity: 0; font-size: 0.7rem; transition: opacity 0.15s; }
+        .ref-cell:hover .pencil { opacity: 0.7; }
+        .ref-edit-wrap { display: inline-flex; align-items: center; gap: 6px; }
+        .ref-edit-input {
+            background: var(--bg); border: 1px solid var(--amber);
+            color: var(--text); padding: 4px 8px; border-radius: 4px;
+            font-family: var(--cx-font); font-size: 0.78rem;
+            width: 120px;
+        }
+        .ref-edit-input:focus { outline: none; }
+        .ref-edit-btn {
+            border: none; border-radius: 4px; padding: 4px 8px;
+            font-family: var(--cx-font); font-size: 0.68rem;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .ref-edit-btn.save { background: var(--amber); color: #080C14; }
+        .ref-edit-btn.save:hover { background: #FF9900; }
+        .ref-edit-btn.cancel { background: transparent; border: 1px solid var(--border-hi); color: var(--text-mid); }
+        .ref-edit-btn.cancel:hover { color: var(--text); }
+
+        .qual-cell {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: transparent; border: 1px solid transparent;
+            border-radius: 4px; padding: 5px 9px;
+            font-family: var(--cx-font); font-size: 0.82rem;
+            color: var(--text-mid); cursor: pointer;
+            transition: all 0.15s;
+        }
+        .qual-cell:hover { border-color: var(--border-hi); background: rgba(0,28,36,0.024); }
+        .qual-cell.ok { color: var(--text); font-weight: 500; }
+        .qual-cell.soon { color: var(--amber); font-weight: 600; }
+        .qual-cell.overdue { color: var(--danger); font-weight: 700; }
+        .qual-cell.empty { color: var(--text-faint); font-style: italic; }
+        .qual-cell.st-booked { background: #F0F8F6; border-color: rgba(6,127,104,0.35); color: var(--cyan); }
+        .qual-cell.st-attended { background: rgba(9,114,211,0.035); border-color: rgba(9,114,211,0.4); color: #8456CE; }
+
+        /* Under Contractor (EE / SS in the spreadsheet) */
+        .qual-cell.contractor, .ref-cell.contractor {
+            background: rgba(9,114,211,0.028); border-color: rgba(9,114,211,0.35);
+            color: var(--contractor); font-size: 0.72rem; font-style: normal;
+        }
+        .qual-cell.contractor:hover, .ref-cell.contractor:hover { border-color: rgba(9,114,211,0.6); color: var(--contractor); }
+
+        /* ── LOADING ── */
+        .loading-state {
+            padding: 60px; text-align: center;
+            color: var(--text-dim); font-family: var(--cx-font); font-size: 0.82rem;
+        }
+        .spinner {
+            display: inline-block; width: 20px; height: 20px;
+            border: 2px solid var(--border); border-top-color: var(--amber);
+            border-radius: 50%; animation: spin 0.7s linear infinite;
+            margin-right: 10px; vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ── MODAL ── */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,7,22,0.55);
+            backdrop-filter: blur(4px);
+            display: none; align-items: center; justify-content: center;
+            z-index: 100; padding: 20px;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: var(--surface); border: 1px solid var(--border-hi);
+            border-radius: 4px; width: 100%; max-width: 440px;
+            padding: 28px; animation: fadeUp 0.25s ease both;
+            box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+        }
+        .modal-eyebrow {
+            font-family: var(--cx-font); font-size: 0.65rem;
+            letter-spacing: 0.15em; text-transform: uppercase; color: var(--amber);
+            margin-bottom: 6px;
+        }
+        .modal-title {
+            font-family: var(--cx-font); font-size: 1.4rem;
+            font-weight: 700; text-transform: uppercase; margin-bottom: 4px;
+        }
+        .modal-sub {
+            font-family: var(--cx-font); font-size: 0.72rem;
+            color: var(--text-mid); margin-bottom: 20px;
+        }
+        .modal-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0; border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
+        }
+        .modal-row .k { color: var(--text-mid); }
+        .modal-row .v { font-family: var(--cx-font); font-weight: 500; }
+        .modal-manual { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+        .modal-manual .modal-btn { flex: 1; padding: 0.5rem 0.8rem; font-size: 0.72rem; }
+        .modal-manual .modal-btn.ghost { background: transparent; border: 1px solid var(--border-hi); color: var(--text-mid); }
+        .modal-manual .modal-btn.ghost:hover { border-color: var(--amber); color: var(--amber); }
+        .modal-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        .modal-btn {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 0.7rem 1rem; border-radius: 4px; border: none;
+            font-family: var(--cx-font); font-size: 0.9rem;
+            font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .modal-btn.primary { background: var(--amber); color: #080C14; }
+        .modal-btn.primary:hover { background: #FF9900; }
+        .modal-btn.success { background: var(--cyan); color: #080C14; }
+        .modal-btn.success:hover { background: #067F68; }
+        .modal-btn.danger { background: transparent; border: 1px solid rgba(209,50,18,0.4); color: var(--danger); }
+        .modal-btn.danger:hover { background: #FDF3F1; }
+        .modal-btn.ghost { background: transparent; border: 1px solid var(--border-hi); color: var(--text-mid); }
+        .modal-btn.ghost:hover { border-color: var(--text-mid); color: var(--text); }
+        .modal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .modal-date-picker { display: none; flex-direction: column; gap: 10px; margin-top: 6px; }
+        .modal-date-picker.show { display: flex; }
+        .modal-close {
+            position: absolute; top: 18px; right: 20px;
+            background: none; border: none; color: var(--text-dim);
+            font-size: 1.3rem; cursor: pointer; line-height: 1;
+        }
+        .modal-close:hover { color: var(--text); }
+        .modal-box { position: relative; }
+        .history-log {
+            margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--border);
+            max-height: 120px; overflow-y: auto;
+        }
+        .history-log .h-item {
+            font-family: var(--cx-font); font-size: 0.68rem;
+            color: var(--text-dim); padding: 3px 0;
+        }
+
+/* ── SUMMARY MODAL ── */
+.summary-box { max-width: 860px; max-height: 88vh; display: flex; flex-direction: column; padding: 0; }
+.summary-head { padding: 26px 28px 16px; border-bottom: 1px solid var(--border); }
+.summary-body { padding: 20px 28px 28px; overflow-y: auto; }
+.summary-chips { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.summary-chips .stat-chip { padding: 8px 14px; }
+.sum-section { margin-bottom: 26px; }
+.sum-section:last-child { margin-bottom: 0; }
+.sum-title {
+    font-family: var(--cx-font); font-size: 1.1rem; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+}
+.sum-title .count { font-family: var(--cx-font); font-size: 0.72rem; color: var(--text-dim); font-weight: 400; letter-spacing: 0; }
+.sum-title.t-booked { color: var(--cyan); }
+.sum-title.t-overdue { color: var(--danger); }
+.sum-title.t-soon { color: var(--amber); }
+.sum-empty { font-family: var(--cx-font); font-size: 0.78rem; color: var(--text-dim); padding: 10px 0; }
+.sum-card {
+    display: flex; gap: 16px; align-items: flex-start;
+    background: var(--bg); border: 1px solid var(--border); border-left-width: 3px;
+    border-radius: 4px; padding: 10px 14px; margin-bottom: 8px;
+}
+.sum-card.c-overdue { border-left-color: var(--danger); }
+.sum-card.c-soon { border-left-color: var(--amber); }
+.sum-card.c-booked { border-left-color: var(--cyan); background: #F0F8F6; }
+.sum-card.c-attended { border-left-color: #0972D3; background: rgba(9,114,211,0.021); }
+.sum-name { min-width: 150px; font-weight: 600; font-size: 0.9rem; padding-top: 3px; }
+.sum-name small { display: block; font-family: var(--cx-font); font-weight: 400; font-size: 0.65rem; color: var(--text-dim); }
+.sum-items { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
+.sum-chip {
+    font-family: var(--cx-font); font-size: 0.72rem;
+    padding: 4px 9px; border-radius: 4px; border: 1px solid var(--border-hi);
+    color: var(--text-mid); white-space: nowrap;
+}
+.sum-chip b { color: var(--text); font-weight: 500; }
+.sum-chip.overdue { border-color: rgba(209,50,18,0.45); background: #FDF3F1; color: var(--danger); }
+.sum-chip.overdue b { color: var(--danger); }
+.sum-chip.soon { border-color: rgba(255,153,0,0.45); background: #FFF7E8; color: var(--amber); }
+.sum-chip.soon b { color: var(--amber); }
+.sum-chip .bk {
+    margin-left: 6px; padding: 1px 6px; border-radius: 4px;
+    background: #F0F8F6; color: var(--cyan);
+}
+.sum-chip .at {
+    margin-left: 6px; padding: 1px 6px; border-radius: 4px;
+    background: #F2F8FD; color: #8456CE;
+}
+@media (max-width: 768px) {
+    .sum-card { flex-direction: column; gap: 8px; }
+    .summary-head, .summary-body { padding-left: 18px; padding-right: 18px; }
+}
+
+/* ── SUMMARY EMAIL ── */
+.summary-foot {
+    display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;
+    padding: 14px 28px 18px; border-top: 1px solid var(--border);
+    background: var(--surface); border-radius: 0 0 4px 4px;
+}
+.summary-foot .ctrl-group { flex: 1; min-width: 220px; }
+.summary-foot .ctrl-input { width: 100%; }
+.summary-foot .modal-btn { padding: 0.62rem 1.2rem; }
+.foot-status { width: 100%; font-family: var(--cx-font); font-size: 0.72rem; min-height: 1em; }
+.foot-status.ok { color: var(--cyan); }
+.foot-status.err { color: var(--danger); }
+@media (max-width: 768px) { .summary-foot { padding-left: 18px; padding-right: 18px; } }
+
+        @media (max-width: 768px) {
+            .topbar, .hero, .content { padding-left: 20px; padding-right: 20px; }
+            .hero { padding-top: 32px; }
+            .ctrl-actions { margin-left: 0; }
+        }
+    </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="catalistics-theme.css">
+<script src="catalistics-shell.js" defer></script>
+</head>
+<body>
+
+    <header class="topbar">
+        <div class="topbar-brand">
+            <div class="brand-mark"></div>
+            <div class="brand-name">Catalistics</div>
+        </div>
+        <div class="topbar-right">
+            <a href="index.html" class="back-link">← Home</a>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="hero-label">Compliance</div>
+        <h1 class="hero-title">Skills <em>Matrix</em></h1>
+        <p class="hero-sub">Engineer qualifications, expiry dates, and assessment bookings.</p>
+    </section>
+
+    <main class="content">
+
+        <div id="message" class="message"></div>
+
+        <div class="stat-row" id="statRow"></div>
+
+        <div class="controls-bar">
+            <div class="ctrl-group">
+                <span class="ctrl-label">Search</span>
+                <input type="text" id="searchInput" class="ctrl-input" placeholder="Filter by engineer name…">
+            </div>
+<div class="ctrl-actions">
+    <button class="modal-btn primary" id="summaryBtn" style="padding:0.6rem 1.2rem;">📋 Summary</button>
+</div>
+        </div>
+
+        <div class="table-wrap">
+            <div id="loadingDiv" class="loading-state">
+                <span class="spinner"></span>Loading skills matrix…
+            </div>
+            <div id="tableContainer" style="display:none;">
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr id="tableHeadRow"></tr>
+                        </thead>
+                        <tbody id="matrixBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <button class="modal-close" onclick="closeModal()">✕</button>
+            <div class="modal-eyebrow" id="modalEyebrow">Qualification</div>
+            <div class="modal-title" id="modalTitle">—</div>
+            <div class="modal-sub" id="modalSub">—</div>
+
+            <div class="modal-row">
+                <span class="k">Current expiry</span>
+                <span class="v" id="modalExpiry">—</span>
+            </div>
+            <div class="modal-row" id="modalAssessRow" style="display:none;">
+                <span class="k" id="modalAssessLabel">Assessment</span>
+                <span class="v" id="modalAssessValue">—</span>
+            </div>
+
+            <div class="modal-manual" id="modalManual"></div>
+
+            <div class="modal-actions" id="modalActions"></div>
+
+            <div class="modal-date-picker" id="datePickerBlock">
+                <span class="ctrl-label" id="datePickerLabel">Date</span>
+                <input type="date" id="datePickerInput" class="ctrl-input" style="min-width:0;">
+                <button class="modal-btn primary" id="datePickerConfirmBtn">Confirm</button>
+                <button class="modal-btn ghost" onclick="cancelDatePicker()">Back</button>
+            </div>
+
+            <div class="history-log" id="historyLog" style="display:none;">
+                <div id="historyItems"></div>
+            </div>
+        </div>
+    </div>
+
+<!-- SUMMARY MODAL -->
+<div class="modal-overlay" id="summaryOverlay">
+    <div class="modal-box summary-box">
+        <button class="modal-close" onclick="closeSummary()">✕</button>
+        <div class="summary-head">
+            <div class="modal-eyebrow">Compliance overview</div>
+            <div class="modal-title">Skills Summary</div>
+            <div class="modal-sub" id="summaryAsOf" style="margin-bottom:0;">—</div>
+            <div class="summary-chips" id="summaryChips"></div>
+        </div>
+        <div class="summary-body" id="summaryBody"></div>
+        <div class="summary-foot">
+            <div class="ctrl-group">
+                <span class="ctrl-label">Email this summary to</span>
+                <input type="text" id="summaryEmailTo" class="ctrl-input" placeholder="name@company.com (separate several with commas)">
+            </div>
+            <button class="modal-btn success" id="summaryEmailBtn">✉️ Send Email</button>
+            <div class="foot-status" id="summaryEmailStatus"></div>
+        </div>
+    </div>
+</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import {
+            getFirestore, collection, getDocs, doc, setDoc, updateDoc, writeBatch
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = CATALISTICS.firebaseConfig('primary');
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // ── Collection name ──
+        const MATRIX_COLLECTION = "skills matrix";
+
+        // ── Qualification columns (in spreadsheet order) ──
+        const QUAL_COLS = ["Single Phase", "Single off Multi", "Multi Rate", "3 Phase", "NPG expiry", "Expiry", "CCN1/CMA", "MET1", "NVQ", "REGT1", "PEB1", "MET4"];
+
+        // ── Seed data, pulled from the Master Skills Matrix 2026 spreadsheet ──
+        // A qual with "contractor": "EE" / "SS" is shown as "Under Contractor" instead of a date.
+        // A gasSafe value of "EE" / "SS" is also shown as "Under Contractor".
+        const SEED_DATA = []; // starting rows used only when the database is empty
+
+        // ── Under Contractor helpers ──
+        const CONTRACTOR_LABEL = 'Under Contractor';
+        function isContractorCode(v) {
+            return /^(EE|SS)$/i.test(String(v ?? '').trim());
+        }
+
+        let engineers = [];      // live state, array of {id, engineerName, eusr, gasSafe, quals}
+        let filterText = '';
+        let modalCtx = null;     // { engineerId, qualKey }
+        let editingRef = null;   // { engineerId, field } — 'eusr' or 'gasSafe' cell currently in inline-edit mode
+
+        function showMessage(text, type) {
+            const el = document.getElementById('message');
+            el.textContent = text;
+            el.className = `message ${type} show`;
+            setTimeout(() => { el.className = 'message'; }, 5000);
+        }
+
+        // ── Seed version ──
+        // Bump this whenever SEED_DATA is replaced with a fresh spreadsheet export.
+        // On next load, any engineer doc with a lower seedVersion is updated from SEED_DATA
+        // (expiry dates, Under Contractor flags, EUSR, Gas Safe), and engineers missing from Firestore are added.
+        // Booked/attended assessments and history are preserved; date changes are logged to history.
+        // v2 = spreadsheet update 12/10/2026
+        // v3 = spreadsheet update 14/10/2026 (adds Under Contractor for EE / SS)
+        const SEED_VERSION = 3;
+
+        // ── Load (and seed if empty) ──
+        async function loadMatrix() {
+            try {
+                const snap = await getDocs(collection(db, MATRIX_COLLECTION));
+                if (snap.empty && SEED_DATA.length) {
+                    await seedFromSpreadsheet();
+                    return loadMatrix();
+                }
+                const existing = [];
+                snap.forEach(d => existing.push({ id: d.id, ...d.data() }));
+                if (await syncFromSeed(existing)) return loadMatrix();
+                engineers = existing;
+                engineers.sort((a, b) => a.engineerName.localeCompare(b.engineerName));
+                render();
+            } catch (err) {
+                console.error('Error loading skills matrix:', err);
+                document.getElementById('loadingDiv').innerHTML = 'Error loading skills matrix. Check the browser console.';
+            }
+        }
+
+        async function seedFromSpreadsheet() {
+            showMessage('First run — seeding skills matrix from the spreadsheet…', 'warning');
+            const batch = writeBatch(db);
+            SEED_DATA.forEach(rec => {
+                const ref = doc(db, MATRIX_COLLECTION, rec.id);
+                batch.set(ref, {
+                    engineerName: rec.engineerName,
+                    eusr: rec.eusr,
+                    gasSafe: rec.gasSafe,
+                    quals: rec.quals,
+                    seedVersion: SEED_VERSION
+                });
+            });
+            await batch.commit();
+        }
+
+        // Applies SEED_DATA to any out-of-date docs. Returns true if anything was written.
+        async function syncFromSeed(existing) {
+            const byId = new Map(existing.map(e => [e.id, e]));
+            const now = new Date().toISOString();
+            const fmt = iso => iso ? iso.split('-').reverse().join('/') : 'blank';
+            const describe = (expiry, contractor) => contractor ? CONTRACTOR_LABEL : fmt(expiry);
+            const writes = [];
+
+            SEED_DATA.forEach(rec => {
+                const cur = byId.get(rec.id);
+                if (!cur) {
+                    writes.push({ id: rec.id, data: {
+                        engineerName: rec.engineerName, eusr: rec.eusr, gasSafe: rec.gasSafe,
+                        quals: rec.quals, seedVersion: SEED_VERSION
+                    }});
+                    return;
+                }
+                if ((cur.seedVersion || 1) >= SEED_VERSION) return;
+
+                const quals = { ...(cur.quals || {}) };
+                QUAL_COLS.forEach(q => {
+                    const old = quals[q] || { expiry: null, assessment: null, history: [] };
+                    const newExpiry = rec.quals[q]?.expiry || null;
+                    const newContractor = rec.quals[q]?.contractor || null;
+                    const oldContractor = old.contractor || null;
+                    const history = [...(old.history || [])];
+                    if ((old.expiry || null) !== newExpiry || oldContractor !== newContractor) {
+                        history.push({ at: now, note: `Spreadsheet update: expiry ${describe(old.expiry, oldContractor)} → ${describe(newExpiry, newContractor)}` });
+                    }
+                    quals[q] = { ...old, expiry: newExpiry, contractor: newContractor, assessment: old.assessment || null, history };
+                });
+                writes.push({ id: rec.id, data: {
+                    engineerName: rec.engineerName, eusr: rec.eusr, gasSafe: rec.gasSafe,
+                    quals, seedVersion: SEED_VERSION
+                }});
+            });
+
+            if (!writes.length) return false;
+            showMessage(`Applying spreadsheet update to ${writes.length} engineer record(s)…`, 'warning');
+            const batch = writeBatch(db);
+            writes.forEach(w => batch.set(doc(db, MATRIX_COLLECTION, w.id), w.data));
+            await batch.commit();
+            showMessage(`Spreadsheet update applied (${writes.length} records).`, 'success');
+            return true;
+        }
+
+        // ── Date helpers ──
+        function parseISO(iso) {
+            if (!iso) return null;
+            const [y, m, d] = iso.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+        function formatDisplay(iso) {
+            const d = parseISO(iso);
+            if (!d) return '—';
+            return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+        function formatDisplayLong(iso) {
+            const d = parseISO(iso);
+            if (!d) return '—';
+            return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+        function todayISO() {
+            const d = new Date();
+            return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        }
+        function qualStatus(iso) {
+            const d = parseISO(iso);
+            if (!d) return 'empty';
+            const now = new Date(); now.setHours(0,0,0,0);
+            const cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() + 6);
+            if (d < now) return 'overdue';
+            if (d <= cutoff) return 'soon';
+            return 'ok';
+        }
+
+        // ── Render ──
+        function render() {
+            renderStats();
+            renderHead();
+            renderBody();
+            document.getElementById('loadingDiv').style.display = 'none';
+            document.getElementById('tableContainer').style.display = 'block';
+        }
+
+        // Display column order mirrors the spreadsheet: Gas Safe sits between
+        // NPG expiry and Expiry, as a plain reference number (not a qual with a workflow).
+        const DISPLAY_COLS = (() => {
+            const cols = QUAL_COLS.map(k => ({ type: 'qual', key: k }));
+            const idx = QUAL_COLS.indexOf('Expiry');
+            cols.splice(idx, 0, { type: 'static', key: 'gasSafe', label: 'Gas Safe' });
+            return cols;
+        })();
+
+        function renderStats() {
+            let overdue = 0, booked = 0, attended = 0;
+            const affected = new Set();
+            engineers.forEach(eng => {
+                QUAL_COLS.forEach(q => {
+                    const qual = eng.quals?.[q];
+                    if (!qual) return;
+                    const st = qualStatus(qual.expiry);
+                    if (st === 'overdue') { overdue++; affected.add(eng.id); }
+                    else if (st === 'soon') { affected.add(eng.id); }
+                    if (qual.assessment?.status === 'booked') booked++;
+                    if (qual.assessment?.status === 'attended') attended++;
+                });
+            });
+            const row = document.getElementById('statRow');
+            row.innerHTML = `
+                <div class="stat-chip overdue"><span class="n">${overdue}</span><span class="l">Overdue</span></div>
+                <div class="stat-chip soon"><span class="n">${affected.size}</span><span class="l">Engineers Affected</span></div>
+                <div class="stat-chip booked"><span class="n">${booked}</span><span class="l">Assessments booked</span></div>
+                <div class="stat-chip attended"><span class="n">${attended}</span><span class="l">Awaiting result</span></div>
+            `;
+        }
+
+        function renderHead() {
+            const tr = document.getElementById('tableHeadRow');
+            let html = '<th>Engineer</th><th>EUSR</th>';
+            DISPLAY_COLS.forEach(c => { html += `<th>${c.type === 'static' ? c.label : c.key}</th>`; });
+            tr.innerHTML = html;
+        }
+
+        function renderBody() {
+            const tbody = document.getElementById('matrixBody');
+            tbody.innerHTML = '';
+            const filtered = engineers.filter(e =>
+                !filterText || e.engineerName.toLowerCase().includes(filterText)
+            );
+            if (!filtered.length) {
+                tbody.innerHTML = `<tr><td colspan="${DISPLAY_COLS.length + 2}" style="text-align:center; color:var(--text-dim); padding:30px;">No engineers match that filter.</td></tr>`;
+                return;
+            }
+            filtered.forEach(eng => {
+                const tr = document.createElement('tr');
+                let html = `<td><div class="eng-name">${eng.engineerName}</div></td>`;
+                html += `<td>${renderRefCell(eng, 'eusr')}</td>`;
+                DISPLAY_COLS.forEach(c => {
+                    html += c.type === 'static'
+                        ? `<td>${renderRefCell(eng, c.key)}</td>`
+                        : `<td>${renderQualCell(eng, c.key)}</td>`;
+                });
+                tr.innerHTML = html;
+                tbody.appendChild(tr);
+            });
+            // wire click handlers — qualification cells open the assessment modal
+            tbody.querySelectorAll('[data-eng][data-qual]').forEach(el => {
+                el.addEventListener('click', () => openModal(el.getAttribute('data-eng'), el.getAttribute('data-qual')));
+            });
+            // wire click handlers — EUSR / Gas Safe reference numbers edit inline
+            tbody.querySelectorAll('[data-ref-eng][data-ref-field]').forEach(el => {
+                el.addEventListener('click', () => startEditRef(el.getAttribute('data-ref-eng'), el.getAttribute('data-ref-field')));
+            });
+            // wire the inline edit input itself, if one is currently open
+            if (editingRef) {
+                const input = tbody.querySelector('.ref-edit-input');
+                const saveBtn = tbody.querySelector('.ref-edit-btn.save');
+                const cancelBtn = tbody.querySelector('.ref-edit-btn.cancel');
+                if (input) {
+                    input.focus();
+                    input.select();
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') saveRef(editingRef.engineerId, editingRef.field, input.value);
+                        if (e.key === 'Escape') cancelEditRef();
+                    });
+                }
+                if (saveBtn) saveBtn.addEventListener('click', () => saveRef(editingRef.engineerId, editingRef.field, input.value));
+                if (cancelBtn) cancelBtn.addEventListener('click', cancelEditRef);
+            }
+        }
+
+        const REF_LABELS = { eusr: 'EUSR number', gasSafe: 'Gas Safe number' };
+
+        function renderRefCell(eng, field) {
+            if (editingRef && editingRef.engineerId === eng.id && editingRef.field === field) {
+                const current = eng[field] || '';
+                return `
+                    <span class="ref-edit-wrap">
+                        <input type="text" class="ref-edit-input" value="${current.replace(/"/g, '&quot;')}" placeholder="${REF_LABELS[field]}">
+                        <button class="ref-edit-btn save">Save</button>
+                        <button class="ref-edit-btn cancel">✕</button>
+                    </span>`;
+            }
+            const value = eng[field];
+            if (field === 'gasSafe' && isContractorCode(value)) {
+                return `<span class="ref-cell contractor" data-ref-eng="${eng.id}" data-ref-field="${field}" title="${String(value).toUpperCase()} — click to edit (enter EE or SS to keep Under Contractor)">${CONTRACTOR_LABEL}<span class="pencil">✎</span></span>`;
+            }
+            const cls = value ? 'ref-cell' : 'ref-cell empty';
+            return `<span class="${cls}" data-ref-eng="${eng.id}" data-ref-field="${field}" title="Click to edit ${REF_LABELS[field]}">${value || '— add —'}<span class="pencil">✎</span></span>`;
+        }
+
+        function startEditRef(engId, field) {
+            editingRef = { engineerId: engId, field };
+            renderBody();
+        }
+
+        function cancelEditRef() {
+            editingRef = null;
+            renderBody();
+        }
+
+        async function saveRef(engId, field, value) {
+            const eng = engineers.find(e => e.id === engId);
+            if (!eng) return;
+            let trimmed = value.trim();
+            if (isContractorCode(trimmed)) trimmed = trimmed.toUpperCase();
+            try {
+                await updateDoc(doc(db, MATRIX_COLLECTION, engId), { [field]: trimmed });
+                eng[field] = trimmed;
+                editingRef = null;
+                renderBody();
+                showMessage(`${REF_LABELS[field]} updated for ${eng.engineerName}.`, 'success');
+            } catch (err) {
+                console.error(err);
+                showMessage('Error saving — please try again.', 'error');
+            }
+        }
+
+        function renderQualCell(eng, qualKey) {
+            const qual = eng.quals?.[qualKey] || { expiry: null, assessment: null };
+            const assessment = qual.assessment;
+            let cls = 'qual-cell';
+            let label;
+            let title = '';
+            if (assessment?.status === 'booked') {
+                cls += ' st-booked';
+                label = `📅 Booked ${formatDisplay(assessment.date)}`;
+            } else if (assessment?.status === 'attended') {
+                cls += ' st-attended';
+                label = `⏳ Attended, pending`;
+            } else if (qual.contractor && !qual.expiry) {
+                cls += ' contractor';
+                label = CONTRACTOR_LABEL;
+                title = ` title="${qual.contractor}"`;
+            } else {
+                const st = qualStatus(qual.expiry);
+                cls += ' ' + st;
+                label = qual.expiry ? formatDisplay(qual.expiry) : '— add —';
+            }
+            return `<span class="${cls}"${title} data-eng="${eng.id}" data-qual="${encodeURIComponent(qualKey)}">${label}</span>`;
+        }
+
+        // ── Modal ──
+        window.closeModal = function () {
+            document.getElementById('modalOverlay').classList.remove('show');
+            modalCtx = null;
+            hideDatePicker();
+        };
+
+        function openModal(engId, qualKeyEncoded) {
+            const qualKey = decodeURIComponent(qualKeyEncoded);
+            const eng = engineers.find(e => e.id === engId);
+            if (!eng) return;
+            modalCtx = { engineerId: engId, qualKey };
+            renderModal();
+            document.getElementById('modalOverlay').classList.add('show');
+        }
+
+        function currentQual() {
+            const eng = engineers.find(e => e.id === modalCtx.engineerId);
+            return eng.quals?.[modalCtx.qualKey] || { expiry: null, assessment: null, history: [] };
+        }
+
+        function renderModal() {
+            const eng = engineers.find(e => e.id === modalCtx.engineerId);
+            const qual = currentQual();
+            document.getElementById('modalEyebrow').textContent = modalCtx.qualKey;
+            document.getElementById('modalTitle').textContent = eng.engineerName;
+            document.getElementById('modalSub').textContent = `EUSR ${eng.eusr || '—'}`;
+            document.getElementById('modalExpiry').textContent = qual.expiry
+                ? formatDisplayLong(qual.expiry)
+                : qual.contractor ? `${CONTRACTOR_LABEL} (${qual.contractor})` : 'No date on file';
+
+            const assessRow = document.getElementById('modalAssessRow');
+            const assessLabel = document.getElementById('modalAssessLabel');
+            const assessValue = document.getElementById('modalAssessValue');
+            const actions = document.getElementById('modalActions');
+            actions.innerHTML = '';
+            hideDatePicker();
+            renderManualControls(qual);
+
+            const status = qual.assessment?.status || 'none';
+
+            if (status === 'none') {
+                assessRow.style.display = 'none';
+                actions.innerHTML = `<button class="modal-btn primary" id="btnBook">📅 Book Assessment</button>`;
+                document.getElementById('btnBook').addEventListener('click', () => showDatePicker({
+                    label: 'Assessment date',
+                    confirmLabel: 'Confirm Booking',
+                    min: todayISO(),
+                    onConfirm: (dateVal) => saveAssessment({ date: dateVal, status: 'booked' }, null, 'booked', dateVal)
+                }));
+            } else if (status === 'booked') {
+                assessRow.style.display = 'flex';
+                assessLabel.textContent = 'Assessment booked';
+                assessValue.textContent = formatDisplayLong(qual.assessment.date);
+                actions.innerHTML = `
+                    <button class="modal-btn success" id="btnAttended">✅ Confirm Attendance</button>
+                    <button class="modal-btn danger" id="btnCancelBooking">Cancel Booking</button>
+                `;
+                document.getElementById('btnAttended').addEventListener('click', () =>
+                    saveAssessment({ date: qual.assessment.date, status: 'attended' }, null, 'attended', qual.assessment.date));
+                document.getElementById('btnCancelBooking').addEventListener('click', () =>
+                    saveAssessment(null, null, 'cancelled', qual.assessment.date));
+            } else if (status === 'attended') {
+                assessRow.style.display = 'flex';
+                assessLabel.textContent = 'Attended on';
+                assessValue.textContent = formatDisplayLong(qual.assessment.date);
+                actions.innerHTML = `
+                    <button class="modal-btn success" id="btnPass">✅ Confirm Pass</button>
+                    <button class="modal-btn danger" id="btnFail">❌ Confirm Fail</button>
+                `;
+                document.getElementById('btnPass').addEventListener('click', () => showDatePicker({
+                    label: 'New expiry date',
+                    confirmLabel: 'Save Pass',
+                    min: todayISO(),
+                    onConfirm: (dateVal) => saveAssessment(null, dateVal, 'passed', qual.assessment.date)
+                }));
+                document.getElementById('btnFail').addEventListener('click', () => showDatePicker({
+                    label: 'New assessment date',
+                    confirmLabel: 'Save & Rebook',
+                    min: todayISO(),
+                    onConfirm: (dateVal) => saveAssessment({ date: dateVal, status: 'booked' }, null, 'failed', qual.assessment.date, dateVal)
+                }));
+            }
+
+            renderHistory(qual);
+        }
+
+        function renderHistory(qual) {
+            const wrap = document.getElementById('historyLog');
+            const items = document.getElementById('historyItems');
+            const history = qual.history || [];
+            if (!history.length) { wrap.style.display = 'none'; return; }
+            wrap.style.display = 'block';
+            items.innerHTML = history.slice().reverse().slice(0, 8).map(h =>
+                `<div class="h-item">${formatDisplay(h.at?.slice(0,10))} — ${h.note}</div>`
+            ).join('');
+        }
+
+        // ── Date picker sub-panel ──
+        let pendingConfirm = null;
+        function showDatePicker({ label, confirmLabel, min, value, onConfirm }) {
+            document.getElementById('modalActions').style.display = 'none';
+            document.getElementById('modalManual').style.display = 'none';
+            const block = document.getElementById('datePickerBlock');
+            document.getElementById('datePickerLabel').textContent = label;
+            const input = document.getElementById('datePickerInput');
+            input.value = value || '';
+            input.min = min || '';
+            const btn = document.getElementById('datePickerConfirmBtn');
+            btn.textContent = confirmLabel;
+            pendingConfirm = onConfirm;
+            btn.onclick = () => {
+                if (!input.value) { showMessage('Please choose a date.', 'error'); return; }
+                pendingConfirm(input.value);
+            };
+            block.classList.add('show');
+        }
+        window.cancelDatePicker = function () {
+            hideDatePicker();
+        };
+        function hideDatePicker() {
+            document.getElementById('datePickerBlock').classList.remove('show');
+            document.getElementById('modalActions').style.display = 'flex';
+            document.getElementById('modalManual').style.display = 'flex';
+        }
+
+        // ── Manual correction controls (always available, independent of assessment workflow) ──
+        function renderManualControls(qual) {
+            const wrap = document.getElementById('modalManual');
+            let html = `<button class="modal-btn ghost" id="btnEditDate">✏️ Edit date</button>`;
+            if (qual.expiry) {
+                html += `<button class="modal-btn ghost" id="btnClearDate">🗑 Clear date</button>`;
+            }
+            html += qual.contractor
+                ? `<button class="modal-btn ghost" id="btnContractor">Remove contractor</button>`
+                : `<button class="modal-btn ghost" id="btnContractor">Under contractor</button>`;
+            wrap.innerHTML = html;
+            document.getElementById('btnEditDate').addEventListener('click', () => showDatePicker({
+                label: 'Correct expiry date',
+                confirmLabel: 'Save Date',
+                value: qual.expiry || '',
+                onConfirm: (dateVal) => saveManualExpiry(dateVal)
+            }));
+            const clearBtn = document.getElementById('btnClearDate');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    if (confirm('Clear this expiry date? This does not affect any booked assessment.')) {
+                        saveManualExpiry(null);
+                    }
+                });
+            }
+            document.getElementById('btnContractor').addEventListener('click', () => {
+                if (qual.contractor) {
+                    saveManualQual({ expiry: qual.expiry || null, contractor: null, note: `${CONTRACTOR_LABEL} removed` });
+                } else {
+                    const msg = qual.expiry
+                        ? `Mark as ${CONTRACTOR_LABEL}? This clears the current expiry date.`
+                        : `Mark as ${CONTRACTOR_LABEL}?`;
+                    if (confirm(msg)) {
+                        saveManualQual({ expiry: null, contractor: 'SS', note: `Marked ${CONTRACTOR_LABEL}` });
+                    }
+                }
+            });
+        }
+
+        function saveManualExpiry(newDateOrNull) {
+            const qual = currentQual();
+            return saveManualQual({
+                expiry: newDateOrNull,
+                // Setting a real date replaces Under Contractor; clearing a date keeps whatever flag was there.
+                contractor: newDateOrNull ? null : (qual.contractor || null),
+                note: newDateOrNull
+                    ? `Expiry manually corrected to ${formatDisplay(newDateOrNull)}`
+                    : 'Expiry date manually cleared'
+            });
+        }
+
+        async function saveManualQual({ expiry, contractor, note }) {
+            const eng = engineers.find(e => e.id === modalCtx.engineerId);
+            const qualKey = modalCtx.qualKey;
+            const qual = eng.quals[qualKey] || { expiry: null, assessment: null, history: [] };
+
+            const updatedQual = {
+                expiry,
+                contractor: contractor || null,
+                assessment: qual.assessment || null,
+                history: [...(qual.history || []), { at: new Date().toISOString(), note }]
+            };
+
+            const updatedQuals = { ...eng.quals, [qualKey]: updatedQual };
+
+            try {
+                await updateDoc(doc(db, MATRIX_COLLECTION, eng.id), { quals: updatedQuals });
+                eng.quals = updatedQuals;
+                render();
+                renderModal();
+                showMessage('Saved.', 'success');
+            } catch (err) {
+                console.error(err);
+                showMessage('Error saving — please try again.', 'error');
+            }
+        }
+
+        // ── Persist ──
+        async function saveAssessment(newAssessment, newExpiry, actionType, assessmentDateForLog, rebookDateForLog) {
+            const eng = engineers.find(e => e.id === modalCtx.engineerId);
+            const qualKey = modalCtx.qualKey;
+            const qual = eng.quals[qualKey] || { expiry: null, assessment: null, history: [] };
+
+            const notes = {
+                booked: `Assessment booked for ${formatDisplay(assessmentDateForLog)}`,
+                attended: `Marked attended (assessment ${formatDisplay(assessmentDateForLog)})`,
+                cancelled: `Booking cancelled (was ${formatDisplay(assessmentDateForLog)})`,
+                passed: `Passed — expiry set to ${formatDisplay(newExpiry)}`,
+                failed: `Failed assessment — rebooked for ${formatDisplay(rebookDateForLog)}`
+            };
+
+            const updatedQual = {
+                expiry: newExpiry || qual.expiry || null,
+                // A pass with a new expiry date takes the qual off Under Contractor.
+                contractor: newExpiry ? null : (qual.contractor || null),
+                assessment: newAssessment,
+                history: [...(qual.history || []), { at: new Date().toISOString(), note: notes[actionType] || actionType }]
+            };
+
+            const updatedQuals = { ...eng.quals, [qualKey]: updatedQual };
+
+            try {
+                await updateDoc(doc(db, MATRIX_COLLECTION, eng.id), { quals: updatedQuals });
+                eng.quals = updatedQuals;
+                render();
+                renderModal();
+                showMessage('Saved.', 'success');
+            } catch (err) {
+                console.error(err);
+                showMessage('Error saving — please try again.', 'error');
+            }
+        }
+
+// ── Summary ──
+function esc(s) {
+    return String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+function daysFromToday(iso) {
+    const d = parseISO(iso);
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    return Math.round((d - now) / 86400000);
+}
+function relLabel(days) {
+    if (days < 0) { const n = -days; return `${n} day${n === 1 ? '' : 's'} overdue`; }
+    if (days === 0) return 'expires today';
+    return `${days} day${days === 1 ? '' : 's'} left`;
+}
+function assessTag(a) {
+    if (!a) return '';
+    if (a.status === 'booked') return `<span class="bk">📅 Booked ${formatDisplay(a.date)}</span>`;
+    if (a.status === 'attended') return `<span class="at">⏳ Attended ${formatDisplay(a.date)}, awaiting result</span>`;
+    return '';
+}
+
+function buildSummary() {
+    const expired = new Map(), soon = new Map(), booked = [];
+
+    engineers.forEach(eng => {
+        QUAL_COLS.forEach(q => {
+            const qual = eng.quals?.[q];
+            if (!qual) return;
+            const a = qual.assessment;
+            if (a && (a.status === 'booked' || a.status === 'attended')) booked.push({ eng, q, qual, a });
+
+            const st = qualStatus(qual.expiry);
+            if (st !== 'overdue' && st !== 'soon') return;
+            const map = st === 'overdue' ? expired : soon;
+            if (!map.has(eng.id)) map.set(eng.id, { eng, items: [] });
+            map.get(eng.id).items.push({ q, expiry: qual.expiry, days: daysFromToday(qual.expiry), a, st });
+        });
+    });
+
+    const groups = map => [...map.values()]
+        .map(g => { g.items.sort((x, y) => x.days - y.days); return g; })
+        .sort((x, y) => x.items[0].days - y.items[0].days);
+
+    const expiredGroups = groups(expired);
+    const soonGroups = groups(soon);
+    booked.sort((x, y) => (x.a.date || '').localeCompare(y.a.date || ''));
+
+    const countItems = gs => gs.reduce((n, g) => n + g.items.length, 0);
+
+    document.getElementById('summaryAsOf').textContent =
+        `As of ${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · "soon" = within 6 months`;
+
+    document.getElementById('summaryChips').innerHTML = `
+        <div class="stat-chip overdue"><span class="n">${countItems(expiredGroups)}</span><span class="l">Expired · ${expiredGroups.length} eng.</span></div>
+        <div class="stat-chip soon"><span class="n">${countItems(soonGroups)}</span><span class="l">Expiring ≤ 6 mo · ${soonGroups.length} eng.</span></div>
+        <div class="stat-chip booked"><span class="n">${booked.length}</span><span class="l">Assessments booked / pending</span></div>`;
+
+    const chipHTML = it => `<span class="sum-chip ${it.st}"><b>${esc(it.q)}</b> · ${formatDisplay(it.expiry)} · ${relLabel(it.days)}${assessTag(it.a)}</span>`;
+
+    const groupSection = (title, cls, cardCls, gs, emptyMsg) => `
+        <div class="sum-section">
+            <div class="sum-title ${cls}">${title}<span class="count">${gs.length} engineer${gs.length === 1 ? '' : 's'} · ${countItems(gs)} qualification${countItems(gs) === 1 ? '' : 's'}</span></div>
+            ${gs.length ? gs.map(g => `
+                <div class="sum-card ${cardCls}">
+                    <div class="sum-name">${esc(g.eng.engineerName)}<small>EUSR ${esc(g.eng.eusr || '—')}</small></div>
+                    <div class="sum-items">${g.items.map(chipHTML).join('')}</div>
+                </div>`).join('') : `<div class="sum-empty">${emptyMsg}</div>`}
+        </div>`;
+
+    const bookedSection = `
+        <div class="sum-section">
+            <div class="sum-title t-booked">Assessments booked<span class="count">${booked.length}</span></div>
+            ${booked.length ? booked.map(b => {
+                const st = qualStatus(b.qual.expiry);
+                const expTxt = b.qual.expiry
+                    ? `Current expiry ${formatDisplay(b.qual.expiry)}${st === 'overdue' ? ' (expired)' : st === 'soon' ? ' (expiring soon)' : ''}`
+                    : b.qual.contractor ? CONTRACTOR_LABEL : 'No expiry on file';
+                const attended = b.a.status === 'attended';
+                return `
+                <div class="sum-card ${attended ? 'c-attended' : 'c-booked'}">
+                    <div class="sum-name">${esc(b.eng.engineerName)}<small>EUSR ${esc(b.eng.eusr || '—')}</small></div>
+                    <div class="sum-items">
+                        <span class="sum-chip"><b>${esc(b.q)}</b></span>
+                        ${attended
+                            ? `<span class="sum-chip" style="color: #8456CE;border-color: rgba(9,114,211,0.4);">⏳ Attended ${formatDisplay(b.a.date)}, awaiting result</span>`
+                            : `<span class="sum-chip" style="color:var(--cyan);border-color: rgba(6,127,104,0.4);">📅 Booked ${formatDisplay(b.a.date)}</span>`}
+                        <span class="sum-chip ${st === 'overdue' ? 'overdue' : st === 'soon' ? 'soon' : ''}">${expTxt}</span>
+                    </div>
+                </div>`;
+            }).join('') : '<div class="sum-empty">No assessments are currently booked.</div>'}
+        </div>`;
+
+    document.getElementById('summaryBody').innerHTML =
+        bookedSection +
+        groupSection('Expired', 't-overdue', 'c-overdue', expiredGroups, 'Nothing has expired. 🎉') +
+        groupSection('Expiring within 6 months', 't-soon', 'c-soon', soonGroups, 'Nothing is expiring in the next 6 months.');
+}
+
+function openSummary() {
+    buildSummary();
+    setEmailStatus('', '');
+    document.getElementById('summaryOverlay').classList.add('show');
+    document.getElementById('summaryBody').scrollTop = 0;
+}
+window.closeSummary = function () {
+    document.getElementById('summaryOverlay').classList.remove('show');
+};
+document.getElementById('summaryBtn').addEventListener('click', openSummary);
+document.getElementById('summaryOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'summaryOverlay') closeSummary();
+});
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSummary();
+});
+
+// ── Email summary (EmailJS) ──
+// Template variables sent: to_email, subject, message (plain text), message_html (HTML)
+const EMAILJS_SERVICE_ID  = 'service_b3nh4bo';
+const EMAILJS_TEMPLATE_ID = 'template_wvsyaeo';
+const EMAILJS_PUBLIC_KEY  = 'ziLnha91scpGjFABh';
+const EMAIL_LS_KEY = 'skillsMatrixSummaryEmail';
+
+function collectSummaryData() {
+    const expired = new Map(), soon = new Map(), booked = [];
+    engineers.forEach(eng => {
+        QUAL_COLS.forEach(q => {
+            const qual = eng.quals?.[q];
+            if (!qual) return;
+            const a = qual.assessment;
+            if (a && (a.status === 'booked' || a.status === 'attended')) booked.push({ eng, q, qual, a });
+            const st = qualStatus(qual.expiry);
+            if (st !== 'overdue' && st !== 'soon') return;
+            const map = st === 'overdue' ? expired : soon;
+            if (!map.has(eng.id)) map.set(eng.id, { eng, items: [] });
+            map.get(eng.id).items.push({ q, expiry: qual.expiry, days: daysFromToday(qual.expiry), a, st });
+        });
+    });
+    const groups = map => [...map.values()]
+        .map(g => { g.items.sort((x, y) => x.days - y.days); return g; })
+        .sort((x, y) => x.items[0].days - y.items[0].days);
+    booked.sort((x, y) => (x.a.date || '').localeCompare(y.a.date || ''));
+    return { expired: groups(expired), soon: groups(soon), booked };
+}
+
+function buildEmailContent() {
+    const { expired, soon, booked } = collectSummaryData();
+    const count = gs => gs.reduce((n, g) => n + g.items.length, 0);
+    const todayLong = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const bookTxt = a => a.status === 'attended'
+        ? `Attended ${formatDisplay(a.date)}, awaiting result`
+        : `Booked ${formatDisplay(a.date)}`;
+
+    // Compact HTML: keep repeated markup minimal so the payload stays well under EmailJS's 50KB limit.
+    const TD = 'padding:6px 10px;border-bottom:1px solid #161E2D;vertical-align:top;font-size:13px;';
+    const h2 = (t, col) => `<h2 style="margin:22px 0 6px;font-size:15px;text-transform:uppercase;color:${col};">${t}</h2>`;
+    const wrap = (rows, col) => `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;color:${col};">${rows}</table>`;
+    const none = msg => `<div style="font-size:13px;color: #687078;">${msg}</div>`;
+
+    const groupTable = (gs, col, emptyMsg) => !gs.length ? none(emptyMsg) : wrap(gs.map(g =>
+        `<tr><td style="${TD}width:170px;color: #1A2433;"><b>${esc(g.eng.engineerName)}</b></td><td style="${TD}">` +
+        g.items.map(it => `${esc(it.q)} - ${formatDisplay(it.expiry)} (${relLabel(it.days)})${it.a ? ' &#128197; ' + esc(bookTxt(it.a)) : ''}`).join('<br>') +
+        `</td></tr>`).join(''), col);
+
+    const bookedTable = !booked.length ? none('No assessments are currently booked.') : wrap(booked.map(b => {
+        const st = qualStatus(b.qual.expiry);
+        const exp = b.qual.expiry
+            ? `Expiry ${formatDisplay(b.qual.expiry)}${st === 'overdue' ? ' (expired)' : st === 'soon' ? ' (expiring soon)' : ''}`
+            : b.qual.contractor ? CONTRACTOR_LABEL : 'No expiry on file';
+        return `<tr><td style="${TD}width:170px;color: #1A2433;"><b>${esc(b.eng.engineerName)}</b></td><td style="${TD}">${esc(b.q)}</td><td style="${TD}">${esc(bookTxt(b.a))}</td><td style="${TD}color:${st === 'overdue' ? '#D13212' : st === 'soon' ? '#8D6605' : '#687078'};">${exp}</td></tr>`;
+    }).join(''), '#067F68');
+
+    const html = `<div style="max-width:720px;margin:0 auto;font-family: var(--cx-font);color: #1A2433;">
+<h1 style="margin:0 0 4px;font-size:22px;">Skills Matrix Summary</h1>
+<div style="font-size:13px;color: #687078;">${todayLong} - "expiring" = within the next 6 months</div>
+<p style="font-size:14px;margin:14px 0 0;"><b style="color: #D13212;">${count(expired)} expired</b> (${expired.length} engineers) &nbsp;|&nbsp; <b style="color: #8D6605;">${count(soon)} expiring within 6 months</b> (${soon.length} engineers) &nbsp;|&nbsp; <b style="color: #067F68;">${booked.length} assessments booked</b></p>
+${h2('Assessments booked', '#067F68')}${bookedTable}
+${h2('Expired', '#D13212')}${groupTable(expired, '#D13212', 'Nothing has expired.')}
+${h2('Expiring within 6 months', '#EC7211')}${groupTable(soon, '#EC7211', 'Nothing is expiring in the next 6 months.')}
+<div style="margin-top:22px;font-size:11px;color: #545B64;">Sent from Catalistics - Skills Matrix</div></div>`;
+
+    // Short plain-text fallback (the full detail is in message_html)
+    const text = `Skills Matrix Summary - ${todayLong}\n` +
+        `Expired: ${count(expired)} qualification(s), ${expired.length} engineer(s)\n` +
+        `Expiring within 6 months: ${count(soon)} qualification(s), ${soon.length} engineer(s)\n` +
+        `Assessments booked / awaiting result: ${booked.length}`;
+
+    return {
+        subject: `Skills Matrix Summary - ${count(expired)} expired, ${count(soon)} expiring soon, ${booked.length} booked - ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`,
+        text,
+        html
+    };
+}
+
+function setEmailStatus(msg, type) {
+    const el = document.getElementById('summaryEmailStatus');
+    el.textContent = msg;
+    el.className = 'foot-status ' + (type || '');
+}
+
+async function sendSummaryEmail() {
+    const input = document.getElementById('summaryEmailTo');
+    const btn = document.getElementById('summaryEmailBtn');
+    const to = input.value.trim();
+    const valid = to && to.split(',').every(a => /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/.test(a.trim()));
+    if (!valid) { setEmailStatus('Please enter a valid email address.', 'err'); return; }
+    if (!window.emailjs) { setEmailStatus('Email service failed to load - check your connection and refresh.', 'err'); return; }
+
+    btn.disabled = true;
+    setEmailStatus('Sending…', '');
+    try {
+        const c = buildEmailContent();
+        const params = { to_email: to, subject: c.subject, message: c.text, message_html: c.html };
+        const kb = Math.round(new Blob([JSON.stringify(params)]).size / 1024);
+        if (kb > 48) {
+            setEmailStatus(`Summary is too large to email (${kb}KB; EmailJS limit is 50KB).`, 'err');
+            return;
+        }
+        await window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params, { publicKey: EMAILJS_PUBLIC_KEY });
+        try { localStorage.setItem(EMAIL_LS_KEY, to); } catch (e) {}
+        setEmailStatus(`Summary sent to ${to}.`, 'ok');
+    } catch (err) {
+        console.error('EmailJS error:', err);
+        setEmailStatus('Could not send: ' + (err?.text || err?.message || 'unknown error'), 'err');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+document.getElementById('summaryEmailBtn').addEventListener('click', sendSummaryEmail);
+document.getElementById('summaryEmailTo').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') sendSummaryEmail();
+});
+try {
+    const saved = localStorage.getItem(EMAIL_LS_KEY);
+    if (saved) document.getElementById('summaryEmailTo').value = saved;
+} catch (e) {}
+
+        // ── Search ──
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            filterText = e.target.value.trim().toLowerCase();
+            renderBody();
+        });
+
+        loadMatrix();
+    </script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Catalistics: shared settings (storage, targets, links). Must load before the page scripts. -->
+<script src="catalistics-settings.js" onerror="this.remove()"></script>
+<script src="catalistics-config.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Console home · Catalistics</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--cx-app-bg); color: var(--cx-text); font-size: 14px; line-height: 20px; }
+  .hero { background: var(--cx-navy-2); color: #fff; padding: 28px 32px 30px; position: relative; overflow: hidden; }
+  .hero::after { content: ''; position: absolute; right: -40px; top: -60px; width: 420px; height: 420px; background: url(assets/catalistics-cat.png) no-repeat center/contain; opacity: .06; pointer-events: none; }
+  .hero-in { max-width: 1280px; margin: 0 auto; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; position: relative; z-index: 1; }
+  .hero img { height: 72px; width: auto; }
+  .hero h1 { margin: 0; font-size: 28px; line-height: 36px; color: #fff !important; }
+  .hero p { margin: 4px 0 0; color: #C6CDD5; max-width: 640px; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 24px 32px 48px; }
+  .grid4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .card { background: #fff; border: 1px solid var(--cx-border); box-shadow: var(--cx-shadow); }
+  .card-h { padding: 12px 16px; border-bottom: 1px solid var(--cx-border); display: flex; justify-content: space-between; align-items: center; }
+  .card-h h2 { margin: 0; font-size: 16px; font-weight: 700; }
+  .stat { padding: 16px; }
+  .stat .lbl { font-size: 12px; font-weight: 700; color: var(--cx-text-2); letter-spacing: .02em; }
+  .stat .val { font-size: 22px; line-height: 30px; font-weight: 700; margin: 6px 0 4px; }
+  .stat a { font-size: 13px; color: var(--cx-info); text-decoration: none; font-weight: 600; }
+  .stat a:hover { text-decoration: underline; }
+  .status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+  .status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .ok { color: var(--cx-success); } .warn { color: var(--cx-warning-text); } .off { color: var(--cx-text-3); }
+  .section-title { display: flex; justify-content: space-between; align-items: center; margin: 8px 0 12px; }
+  .section-title h2 { margin: 0; font-size: 20px; font-weight: 700; }
+  .filter { width: 280px; height: 32px; padding: 0 10px; font: 14px var(--cx-font); }
+  .services { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .svc ul { list-style: none; margin: 0; padding: 6px 0; }
+  .svc li a { display: flex; align-items: center; gap: 12px; padding: 8px 16px; text-decoration: none; color: var(--cx-text); }
+  .svc li a:hover { background: var(--cx-hover); color: var(--cx-info); }
+  .svc li a svg { width: 18px; height: 18px; flex: 0 0 auto; stroke: var(--cx-text-2); fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  .svc li a:hover svg { stroke: var(--cx-info); }
+  .svc li.hide { display: none; }
+  .steps { counter-reset: s; list-style: none; margin: 0; padding: 4px 16px 12px; }
+  .steps li { counter-increment: s; display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #EAEDED; align-items: flex-start; }
+  .steps li:last-child { border-bottom: 0; }
+  .steps li::before { content: counter(s); width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--cx-border-strong); display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex: 0 0 auto; color: var(--cx-text-2); }
+  .steps li.done::before { content: '✓'; background: var(--cx-success); border-color: var(--cx-success); color: #fff; }
+  .steps a { color: var(--cx-info); font-weight: 600; text-decoration: none; }
+  .steps small { display: block; color: var(--cx-text-2); }
+  .two { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 16px; margin-bottom: 28px; }
+  .quick { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0; }
+  .quick a { padding: 16px; border-right: 1px solid #EAEDED; border-bottom: 1px solid #EAEDED; text-decoration: none; color: var(--cx-text); display: flex; flex-direction: column; gap: 8px; }
+  .quick a:hover { background: var(--cx-hover); }
+  .quick a strong { font-size: 14px; }
+  .quick a span { color: var(--cx-text-2); font-size: 12px; line-height: 16px; }
+  .quick svg { width: 22px; height: 22px; stroke: var(--cx-orange); fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  @media (max-width: 900px) { .two { grid-template-columns: 1fr; } .wrap, .hero { padding-left: 16px; padding-right: 16px; } .filter { width: 100%; } .section-title { flex-wrap: wrap; gap: 8px; } }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="catalistics-theme.css">
+<script src="catalistics-shell.js" defer></script>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-in">
+    <img src="assets/catalistics-mark.png" alt="">
+    <div>
+      <h1>Catalistics console</h1>
+      <p>Daily performance, people, compliance, bonus and finance for your field teams, in one place.</p>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="grid4" id="status"></div>
+
+  <div class="two">
+    <section class="card">
+      <div class="card-h"><h2>Start here</h2></div>
+      <div class="quick">
+        <a href="workscreenftl.html"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="1"/><path d="M8 21h8M12 17v4"/></svg><strong>Work Screen</strong><span>Yesterday's meters, completion and attendance</span></a>
+        <a href="submitdata.html"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg><strong>Submit data</strong><span>Enter or upload today's figures</span></a>
+        <a href="leaguetable.html"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/></svg><strong>League table</strong><span>Rank engineers and teams</span></a>
+        <a href="bonus-deduction.html"><svg viewBox="0 0 24 24"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg><strong>Weekly deductions</strong><span>Flag this week's bonus items</span></a>
+        <a href="catalistics-ai.html"><svg viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg><strong>Catalistics AI</strong><span>Ask questions in plain English</span></a>
+        <a href="storage.html"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/></svg><strong>Storage &amp; settings</strong><span>Connect data, set targets</span></a>
+      </div>
+    </section>
+    <section class="card">
+      <div class="card-h"><h2>Set up</h2><span id="setupCount" class="status off"></span></div>
+      <ol class="steps" id="steps"></ol>
+    </section>
+  </div>
+
+  <div class="section-title">
+    <h2>All services</h2>
+    <input class="filter" id="filter" type="search" placeholder="Filter services" aria-label="Filter services">
+  </div>
+  <div class="services" id="services"></div>
+</div>
+
+<script>
+(function () {
+  var CX = window.CATALISTICS, s = CX.settings || {};
+  var fb = CX.isConfigured('primary');
+  var nT = Object.keys(CX.TARGET_DEFS).filter(function (k) { return CX.hasTarget(k); }).length;
+  var total = Object.keys(CX.TARGET_DEFS).length;
+  var ai = !!CX.aiEndpoint();
+  var links = Object.keys(CX.LINK_DEFS).filter(function (k) { return CX.link(k); }).length;
+  function tile(lbl, val, cls, link, linkTxt) {
+    return '<div class="card stat"><div class="lbl">' + lbl + '</div><div class="val"><span class="status ' + cls + '">' + val + '</span></div><a href="' + link + '">' + linkTxt + '</a></div>';
+  }
+  document.getElementById('status').innerHTML =
+    tile('DATA STORAGE', fb ? (CX.provider() === 'aws' ? 'AWS + Firebase' : 'Firebase') : 'Not connected', fb ? 'ok' : 'warn', 'storage.html#firebase', fb ? (s.firebase.primary.projectId) : 'Connect storage') +
+    tile('TARGETS', nT + ' of ' + total + ' set', nT === total ? 'ok' : nT ? 'warn' : 'off', 'storage.html#targets', 'Review targets') +
+    tile('CATALISTICS AI', ai ? 'Connected' : 'Not set up', ai ? 'ok' : 'off', ai ? 'catalistics-ai.html' : 'storage.html#ai', ai ? 'Open the assistant' : 'Add the Worker address') +
+    tile('SIGN-IN', CX.requireSignIn() ? 'Required' : 'Off', CX.requireSignIn() ? 'ok' : 'off', 'storage.html#security', 'Sign-in settings');
+
+  var steps = [
+    [fb, 'Connect your Firebase database', 'storage.html#firebase', 'Paste your project\'s web app config.'],
+    [nT > 0, 'Set your targets', 'storage.html#targets', 'Completion rate, meters per engineer and working hours.'],
+    [links > 0, 'Add links to your other systems', 'storage.html#links', 'Forms, HR, recruitment and solar sites.'],
+    [ai, 'Connect Catalistics AI (optional)', 'storage.html#ai', 'Needs a free Cloudflare Worker.'],
+    [!!window.CATALISTICS_DEFAULTS, 'Publish the settings file', 'storage.html#deploy', 'So every user gets the same setup.']
+  ];
+  document.getElementById('steps').innerHTML = steps.map(function (st) {
+    return '<li class="' + (st[0] ? 'done' : '') + '"><div><a href="' + st[2] + '">' + st[1] + '</a><small>' + st[3] + '</small></div></li>';
+  }).join('');
+  var done = steps.filter(function (x) { return x[0]; }).length;
+  var sc = document.getElementById('setupCount'); sc.textContent = done + ' of ' + steps.length + ' done'; sc.className = 'status ' + (done === steps.length ? 'ok' : 'warn');
+
+  function renderServices() {
+    if (!window.CXShell) return setTimeout(renderServices, 30);
+    var html = '';
+    CXShell.nav.forEach(function (g) {
+      if (g.group === 'Overview' && false) return;
+      html += '<section class="card svc"><div class="card-h"><h2>' + g.group + '</h2></div><ul>' +
+        g.items.filter(function (it) { return it[0] !== 'index.html'; }).map(function (it) {
+          return '<li data-k="' + (it[1] + ' ' + g.group).toLowerCase() + '"><a href="' + it[0] + '">' + CXShell.svg(it[2]) + '<span>' + it[1] + '</span></a></li>';
+        }).join('') + '</ul></section>';
+    });
+    document.getElementById('services').innerHTML = html;
+  }
+  renderServices();
+  document.getElementById('filter').addEventListener('input', function (e) {
+    var q = e.target.value.trim().toLowerCase();
+    document.querySelectorAll('.svc').forEach(function (sec) {
+      var any = false;
+      sec.querySelectorAll('li').forEach(function (li) { var on = !q || li.dataset.k.indexOf(q) !== -1; li.classList.toggle('hide', !on); any = any || on; });
+      sec.style.display = any ? '' : 'none';
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Catalistics: shared settings (storage, targets, links). Must load before the page scripts. -->
+<script src="catalistics-settings.js" onerror="this.remove()"></script>
+<script src="catalistics-config.js"></script>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Tester — Review · Catalistics</title>
+<style>
+  :root{
+    --bg: #F2F3F3;
+    --paper: #FFFFFF;
+    --ink: #16212B;
+    --ink-soft: #4C5B66;
+    --line: #D7DEDB;
+    --navy: #F2F3F3;
+    --navy-2: #F2F3F3;
+    --amber: #FF9900;
+    --amber-bg: #F2F3F3;
+    --good: #1D8102;
+    --good-bg: #F2F3F3;
+    --bad: #D13212;
+    --bad-bg: #F8E6E6;
+    --radius:10px;
+  }
+  *{ box-sizing:border-box; }
+  html{ font-size:19px; }
+  body{
+    margin:0;
+    background: #F2F3F3;
+    background-image: none;
+    background-size:22px 22px;
+    font-family: var(--cx-font);
+    color:var(--ink);
+    padding:2.5rem 3rem 4rem;
+  }
+  .wrap{ max-width:2000px; margin:0 auto; }
+
+  .head{
+    background:linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%);
+    color: #161E2D;
+    border-radius: 4px;
+    padding:2.2rem 2.6rem;
+    margin-bottom:1.8rem;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:1.5rem;
+  }
+  .head .eyebrow{ font-family: var(--cx-font); font-size:1.05rem; color:var(--amber); margin:0 0 0.3rem; letter-spacing:0.04em; }
+  .head h1{ font-family: var(--cx-font); font-size:2.6rem; margin:0; }
+  .head a{
+    color: #545B64; font-size:1rem; text-decoration:none; border-bottom: 1px solid #D5DBDB;
+  }
+  .head a:hover{ color: #161E2D; }
+
+  .head-right{ display:flex; flex-direction:column; align-items:flex-end; gap:0.9rem; }
+  .head-links{ display:flex; align-items:center; gap:1.2rem; }
+
+  .export-btn{
+    font-family: var(--cx-font);
+    font-size:1rem;
+    font-weight:600;
+    color:var(--navy);
+    background:var(--amber);
+    border:none;
+    border-radius: 4px;
+    padding:0.55rem 1.1rem;
+    cursor:pointer;
+    transition:background .15s, transform .1s;
+  }
+  .export-btn:hover{ background: #FF9900; }
+  .export-btn:active{ transform:translateY(1px); }
+  .export-btn:focus-visible{ outline: 2px solid #FFFFFF; outline-offset:2px; }
+  .export-btn:disabled{ opacity:0.5; cursor:not-allowed; }
+
+  .progress{
+    display:flex;
+    align-items:center;
+    gap:1.1rem;
+  }
+  .progress .ring{
+    position:relative;
+    width:9rem; height:9rem;
+  }
+  .progress .ring svg{ transform:rotate(-90deg); width:100%; height:100%; }
+  .progress .ring circle{ fill:none; stroke-width:7; }
+  .progress .ring .track{ stroke: rgba(22,30,45,0.16); }
+  .progress .ring .bar{ stroke:var(--amber); stroke-linecap:round; transition:stroke-dashoffset .4s ease; }
+  .progress .ring .pct{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family: var(--cx-font);
+    font-size:2.2rem; font-weight:700; color: #161E2D;
+  }
+  .progress .label{ text-align:right; }
+  .progress .label .n{ font-family: var(--cx-font); font-size:1.3rem; font-weight:600; color: #161E2D; line-height:1.2; }
+  .progress .label .l{ font-size:1rem; color: #545B64; }
+
+  .stats{ display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1.8rem; }
+  .stat{
+    flex:1; min-width:12rem;
+    background:var(--paper);
+    border-radius: 4px;
+    padding:1.1rem 1.3rem;
+    box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+  }
+  .stat .n{ font-family: var(--cx-font); font-size:2.4rem; font-weight:600; }
+  .stat .l{ font-size:1rem; color:var(--ink-soft); margin-top:0.15rem; }
+
+  .content{ display:grid; grid-template-columns:16rem 1fr 26rem; gap:1.8rem; align-items:start; }
+  @media (max-width:1100px){
+    .content{ grid-template-columns:1fr; }
+  }
+
+  #list{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; align-content:start; }
+  @media (max-width:1400px){
+    #list{ grid-template-columns:1fr; }
+  }
+
+  .side-table{
+    background:var(--paper);
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+    padding:1.5rem 1.7rem;
+  }
+  .side-table h2{
+    font-family: var(--cx-font);
+    font-size:1.1rem;
+    margin:0 0 0.9rem;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+  }
+  .side-table table{ width:100%; border-collapse:collapse; }
+  .side-table td{
+    font-size:1.25rem;
+    padding:0.55rem 0;
+    border-bottom:1px solid var(--line);
+  }
+  .side-table tr:last-child td{ border-bottom:none; }
+  .side-table td.label{ color:var(--ink-soft); }
+  .side-table td.value{ text-align:right; font-weight:600; color:var(--ink); font-family: var(--cx-font); }
+  .side-table tr.sub td{ font-size:1.05rem; }
+  .side-table tr.sub td.label{ padding-left:1rem; }
+  .side-table tr.divider td{ border-bottom:none; padding-top:1rem; }
+  .side-table tr.highlight td{ color:var(--bad); font-size:1.35rem; }
+  .side-table tr.highlight td.value{ color:var(--bad); }
+
+  .card{
+    background:var(--paper);
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+    padding:1.3rem 1.5rem;
+    display:flex;
+    gap:1.1rem;
+    align-items:flex-start;
+  }
+  .card .thumb{
+    width:5.5rem; height:5.5rem; border-radius: 4px; object-fit:cover;
+    border:1px solid var(--line); flex-shrink:0; cursor:pointer; background: #F2F2F0;
+  }
+  .card .thumb.placeholder{
+    display:flex; align-items:center; justify-content:center;
+    font-size:0.75rem; color:var(--ink-soft); text-align:center; padding:0.3rem;
+  }
+  .card .body{ flex:1; min-width:0; }
+  .card .row1{ display:flex; justify-content:space-between; gap:0.6rem; flex-wrap:wrap; align-items:center; }
+  .card .name{ font-family: var(--cx-font); font-weight:600; font-size:1.25rem; }
+  .card .date{ font-size:0.95rem; color:var(--ink-soft); }
+  .card .meta{ font-size:1.05rem; color:var(--ink-soft); margin-top:0.4rem; line-height:1.5; }
+  .card .meta b{ color:var(--ink); font-weight:600; }
+
+  .badge{
+    display:inline-block;
+    font-size:0.95rem;
+    font-weight:600;
+    padding:0.3rem 0.75rem;
+    border-radius: 4px;
+    margin-top:0.5rem;
+  }
+  .badge.good{ color:var(--good); background:var(--good-bg); }
+  .badge.warn{ color:var(--amber); background:var(--amber-bg); }
+  .badge.bad{ color:var(--bad); background:var(--bad-bg); }
+
+  .sub-block{
+    margin-top:0.7rem;
+    padding-top:0.7rem;
+    border-top:1px dashed var(--line);
+    display:flex;
+    gap:0.9rem;
+    align-items:flex-start;
+  }
+  .sub-block .sub-body{ flex:1; min-width:0; }
+  .sub-block .thumb{ width:4.2rem; height:4.2rem; }
+  .sub-label{
+    font-size:0.85rem;
+    font-weight:600;
+    letter-spacing:0.02em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:0.3rem;
+  }
+
+  .empty, .loading{
+    text-align:center; color:var(--ink-soft); padding:3.5rem 1.5rem; font-size:1.2rem;
+    grid-column:1 / -1;
+  }
+
+  .lightbox{
+    display:none; position:fixed; inset:0; background: rgba(0,7,22,0.55);
+    align-items:center; justify-content:center; padding:30px; z-index:10;
+  }
+  .lightbox.active{ display:flex; }
+  .lightbox img{ max-width:100%; max-height:100%; border-radius: 4px; }
+
+  .clock{
+    font-family: var(--cx-font);
+    font-size:1rem;
+    color: #545B64;
+    text-align:right;
+  }
+
+  .missing-panel h2{ display:flex; justify-content:space-between; align-items:baseline; }
+  .missing-panel .missing-count{
+    font-family: var(--cx-font);
+    font-size:1rem;
+    color:var(--bad);
+    text-transform:none;
+    letter-spacing:0;
+  }
+  .missing-list{
+    list-style:none;
+    margin:0;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:0.4rem;
+  }
+  .missing-list li{
+    font-size:1.05rem;
+    padding:0.5rem 0.6rem;
+    border-radius: 4px;
+    cursor:pointer;
+    color:var(--ink);
+    transition:background .15s, color .15s;
+    line-height:1.3;
+  }
+  .missing-list li:hover{
+    background:var(--bad-bg);
+    color:var(--bad);
+    text-decoration:line-through;
+  }
+  .missing-list li::before{
+    content:"●";
+    color:var(--bad);
+    font-size:0.55rem;
+    margin-right:0.55rem;
+    vertical-align:middle;
+  }
+  .missing-empty{
+    font-size:1.05rem;
+    color:var(--good);
+    padding:0.5rem 0.6rem;
+  }
+  .reset-link{
+    display:inline-block;
+    margin-top:1rem;
+    font-size:0.9rem;
+    color:var(--ink-soft);
+    text-decoration:underline;
+    cursor:pointer;
+  }
+  .reset-link:hover{ color:var(--ink); }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="catalistics-theme.css">
+<script src="catalistics-shell.js" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div>
+      <p class="eyebrow">EQUIPMENT DECLARATION</p>
+      <h1>Smart Tester — Review</h1>
+    </div>
+    <div class="head-right">
+      <div class="progress" id="progress">
+        <div class="ring">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle class="track" cx="60" cy="60" r="50"></circle>
+            <circle class="bar" id="progressBar" cx="60" cy="60" r="50" stroke-dasharray="314.2" stroke-dashoffset="314.2"></circle>
+          </svg>
+          <div class="pct" id="progressPct">0%</div>
+        </div>
+        <div class="label">
+          <div class="n" id="progressCount">0 / 47</div>
+          <div class="l">submitted</div>
+        </div>
+      </div>
+      <div class="head-links">
+        <button class="export-btn" id="exportBtn" disabled>Export CSV</button>
+        <a href="smart-tester.html">← Back to form</a>
+      </div>
+      <div class="clock" id="clock"></div>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="content">
+    <div class="side-table missing-panel">
+      <h2>Not Yet Submitted <span class="missing-count" id="missingCount"></span></h2>
+      <ul class="missing-list" id="missingList"></ul>
+      <a class="reset-link" id="resetRemoved">Reset removed names</a>
+    </div>
+
+    <div id="list"><div class="loading">Loading declarations…</div></div>
+
+    <div class="side-table">
+      <h2>Breakdown</h2>
+      <table>
+        <tbody>
+          <tr>
+            <td class="label">Total Yes</td>
+            <td class="value" id="tblYes">—</td>
+          </tr>
+          <tr>
+            <td class="label">Total No</td>
+            <td class="value" id="tblNo">—</td>
+          </tr>
+          <tr class="sub">
+            <td class="label">— Calibration</td>
+            <td class="value" id="tblReasonCalibration">—</td>
+          </tr>
+          <tr class="sub">
+            <td class="label">— Broken</td>
+            <td class="value" id="tblReasonBroken">—</td>
+          </tr>
+          <tr class="sub">
+            <td class="label">— Never issued one</td>
+            <td class="value" id="tblReasonNever">—</td>
+          </tr>
+          <tr class="divider highlight">
+            <td class="label">Calibration expired</td>
+            <td class="value" id="tblExpired">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <img id="lightboxImg" alt="Full size smart tester photo">
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  // ---------------------------------------------------------
+  // PASTE YOUR FIREBASE CONFIG HERE (same config on both pages)
+  // ---------------------------------------------------------
+  const firebaseConfig = CATALISTICS.firebaseConfig('primary');
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const COLLECTION = "Smart Tester";
+
+  const listEl = document.getElementById('list');
+  const statsEl = document.getElementById('stats');
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightboxImg');
+
+  lightbox.addEventListener('click', () => lightbox.classList.remove('active'));
+
+  function fmtDate(d) {
+    if (!d) return '—';
+    const dt = new Date(d + 'T00:00:00');
+    if (isNaN(dt)) return d;
+    return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  function calibrationBadge(dueStr) {
+    if (!dueStr) return '<span class="badge warn">No calibration date set</span>';
+    const due = new Date(dueStr + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const daysLeft = Math.round((due - today) / 86400000);
+    if (daysLeft < 0) return `<span class="badge bad">Overdue since ${fmtDate(dueStr)}</span>`;
+    if (daysLeft <= 30) return `<span class="badge warn">Due soon — ${fmtDate(dueStr)}</span>`;
+    return `<span class="badge good">Calibrated until ${fmtDate(dueStr)}</span>`;
+  }
+
+  function submittedDate(ts) {
+    if (!ts || !ts.toDate) return '';
+    return ts.toDate().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  // Full staff roster — anyone with a matching submission is hidden below automatically.
+  const STAFF_NAMES = []; // full staff roster, e.g. ["Name One", "Name Two"]
+
+  const REMOVED_KEY = 'smartTesterRemovedNames';
+  function normalizeName(s){ return (s || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+  function getRemovedSet(){
+    try { return new Set(JSON.parse(localStorage.getItem(REMOVED_KEY) || '[]')); }
+    catch { return new Set(); }
+  }
+  function saveRemovedSet(set){
+    localStorage.setItem(REMOVED_KEY, JSON.stringify([...set]));
+  }
+  function removeMissingName(name){
+    const set = getRemovedSet();
+    set.add(normalizeName(name));
+    saveRemovedSet(set);
+    renderMissingList(lastSubmittedNames);
+  }
+  window.removeMissingName = removeMissingName;
+
+  document.getElementById('resetRemoved').addEventListener('click', (e) => {
+    e.preventDefault();
+    localStorage.removeItem(REMOVED_KEY);
+    renderMissingList(lastSubmittedNames);
+  });
+
+  let lastSubmittedNames = new Set();
+
+  function renderMissingList(submittedNamesSet){
+    lastSubmittedNames = submittedNamesSet;
+    const removedSet = getRemovedSet();
+    const missing = STAFF_NAMES.filter(n =>
+      !submittedNamesSet.has(normalizeName(n)) && !removedSet.has(normalizeName(n))
+    );
+
+    const listEl = document.getElementById('missingList');
+    const countEl = document.getElementById('missingCount');
+    countEl.textContent = missing.length ? `${missing.length}` : '';
+
+    if (!missing.length) {
+      listEl.innerHTML = '<div class="missing-empty">Everyone has submitted 🎉</div>';
+      return;
+    }
+    listEl.innerHTML = missing.map(n =>
+      `<li onclick="removeMissingName('${n.replace(/'/g, "\\'")}')" title="Click to remove (e.g. spelling already matched)">${n}</li>`
+    ).join('');
+  }
+
+  const EXPECTED_TOTAL = STAFF_NAMES.length;
+  const RING_CIRCUMFERENCE = 2 * Math.PI * 50; // r=50
+
+  function updateProgress(count) {
+    const pct = EXPECTED_TOTAL ? Math.min(100, Math.round((count / EXPECTED_TOTAL) * 100)) : 0;
+    document.getElementById('progressPct').textContent = `${pct}%`;
+    document.getElementById('progressCount').textContent = `${count} / ${EXPECTED_TOTAL}`;
+    const offset = RING_CIRCUMFERENCE * (1 - pct / 100);
+    const bar = document.getElementById('progressBar');
+    bar.setAttribute('stroke-dasharray', RING_CIRCUMFERENCE.toFixed(1));
+    bar.setAttribute('stroke-dashoffset', offset.toFixed(1));
+  }
+
+  function updateSideTable(haveTester, noTester, reasonCounts, overdue) {
+    document.getElementById('tblYes').textContent = haveTester;
+    document.getElementById('tblNo').textContent = noTester;
+    document.getElementById('tblReasonCalibration').textContent = reasonCounts.Calibration;
+    document.getElementById('tblReasonBroken').textContent = reasonCounts.Broken;
+    document.getElementById('tblReasonNever').textContent = reasonCounts['Never been issued one'];
+    document.getElementById('tblExpired').textContent = overdue;
+  }
+
+  // ── Export ──
+  // Holds one row per tester (a second tester gets its own row) from the latest load.
+  let exportRows = [];
+  const exportBtn = document.getElementById('exportBtn');
+
+  function csvDate(iso) {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-');
+    if (!y || !m || !d) return iso;
+    return `${d}/${m}/${y}`; // DD/MM/YYYY for UK Excel
+  }
+
+  function csvCell(v) {
+    const s = String(v ?? '');
+    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }
+
+  function exportCsv() {
+    if (!exportRows.length) return;
+    const sorted = exportRows.slice().sort((a, b) => a.name.localeCompare(b.name));
+    const lines = [
+      ['Name', 'Serial Number', 'Calibrated Until'].join(','),
+      ...sorted.map(r => [r.name, r.serial, csvDate(r.calibratedUntil)].map(csvCell).join(','))
+    ];
+    // BOM so Excel opens it as UTF-8
+    const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const today = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `smart-testers-${today}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+  exportBtn.addEventListener('click', exportCsv);
+
+  async function load() {
+    try {
+      const snap = await db.collection(COLLECTION).orderBy('createdAt', 'desc').get();
+
+      if (snap.empty) {
+        listEl.innerHTML = '<div class="empty">No declarations submitted yet.</div>';
+        statsEl.innerHTML = '';
+        updateProgress(0);
+        updateSideTable(0, 0, { Calibration: 0, Broken: 0, 'Never been issued one': 0 }, 0);
+        renderMissingList(new Set());
+        exportRows = [];
+        exportBtn.disabled = true;
+        return;
+      }
+
+      let total = 0, haveTester = 0, noTester = 0, overdue = 0, secondTesters = 0;
+      const reasonCounts = { Calibration: 0, Broken: 0, 'Never been issued one': 0 };
+      const cards = [];
+      const submittedNames = new Set();
+      const rows = [];
+
+      snap.forEach(doc => {
+        const d = doc.data();
+        total++;
+        submittedNames.add(normalizeName(d.name));
+        if (d.hasTester) haveTester++; else noTester++;
+        if (!d.hasTester && d.noReason && reasonCounts.hasOwnProperty(d.noReason)) {
+          reasonCounts[d.noReason]++;
+        }
+
+        if (d.hasTester) {
+          rows.push({ name: d.name || 'Unnamed', serial: d.serialNumber || '', calibratedUntil: d.calibrationDue || '' });
+          if (d.hasSecondTester) {
+            rows.push({ name: d.name || 'Unnamed', serial: d.serialNumber2 || '', calibratedUntil: d.calibrationDue2 || '' });
+          }
+        }
+
+        if (d.hasTester && d.calibrationDue) {
+          const due = new Date(d.calibrationDue + 'T00:00:00');
+          const today = new Date(); today.setHours(0,0,0,0);
+          if (due < today) overdue++;
+        }
+        if (d.hasTester && d.hasSecondTester && d.calibrationDue2) {
+          const due2 = new Date(d.calibrationDue2 + 'T00:00:00');
+          const today = new Date(); today.setHours(0,0,0,0);
+          if (due2 < today) overdue++;
+        }
+        if (d.hasTester && d.hasSecondTester) secondTesters++;
+
+        const thumb = d.imageUrl
+          ? `<img class="thumb" src="${d.imageUrl}" onclick="openLightbox('${d.imageUrl}')" alt="Smart tester photo">`
+          : `<div class="thumb placeholder">No photo</div>`;
+
+        let meta;
+        if (d.hasTester) {
+          const secondThumb = d.imageUrl2
+            ? `<img class="thumb" src="${d.imageUrl2}" onclick="openLightbox('${d.imageUrl2}')" alt="Second smart tester photo">`
+            : `<div class="thumb placeholder">No photo</div>`;
+
+          meta = `
+            <div class="meta"><b>Serial number:</b> ${d.serialNumber || '—'}</div>
+            ${calibrationBadge(d.calibrationDue)}
+            ${d.hasSecondTester ? `
+              <div class="sub-block">
+                ${secondThumb}
+                <div class="sub-body">
+                  <div class="sub-label">Second tester</div>
+                  <div class="meta"><b>Serial number:</b> ${d.serialNumber2 || '—'}</div>
+                  ${calibrationBadge(d.calibrationDue2)}
+                </div>
+              </div>
+            ` : ''}
+          `;
+        } else {
+          const jiffyLine = d.noReason === 'Calibration'
+            ? `<div class="meta"><b>Jiffy requested:</b> ${d.jiffyRequested ? 'Yes' + (d.jiffyRequestedDate ? ' — ' + fmtDate(d.jiffyRequestedDate) : '') : 'No'}</div>`
+            : '';
+          meta = `
+            <div class="meta"><b>Reason:</b> ${d.noReason || '—'}</div>
+            ${d.noReasonDetail ? `<div class="meta"><b>Details:</b> ${d.noReasonDetail}</div>` : ''}
+            ${jiffyLine}
+            <div class="meta"><b>Returned to Service Desk:</b> ${fmtDate(d.returnedDate)}</div>
+            <span class="badge bad">No tester</span>
+          `;
+        }
+
+        cards.push(`
+          <div class="card">
+            ${thumb}
+            <div class="body">
+              <div class="row1">
+                <span class="name">${d.name || 'Unnamed'}</span>
+                <span class="date">Submitted ${submittedDate(d.createdAt)}</span>
+              </div>
+              ${meta}
+            </div>
+          </div>
+        `);
+      });
+
+      exportRows = rows;
+      exportBtn.disabled = rows.length === 0;
+
+      statsEl.innerHTML = `
+        <div class="stat"><div class="n">${total}</div><div class="l">Total declarations</div></div>
+        <div class="stat"><div class="n">${haveTester}</div><div class="l">Have a tester</div></div>
+        <div class="stat"><div class="n">${noTester}</div><div class="l">No tester</div></div>
+        <div class="stat"><div class="n">${secondTesters}</div><div class="l">With a second tester</div></div>
+        <div class="stat"><div class="n">${overdue}</div><div class="l">Overdue calibration</div></div>
+      `;
+      listEl.innerHTML = cards.join('');
+      updateProgress(total);
+      updateSideTable(haveTester, noTester, reasonCounts, overdue);
+      renderMissingList(submittedNames);
+    } catch (err) {
+      console.error(err);
+      listEl.innerHTML = `<div class="empty">Couldn't load declarations: ${err.message}</div>`;
+    }
+  }
+
+  function openLightbox(url) {
+    lightboxImg.src = url;
+    lightbox.classList.add('active');
+  }
+  window.openLightbox = openLightbox;
+
+  function updateClock() {
+    const clockEl = document.getElementById('clock');
+    if (clockEl) {
+      clockEl.textContent = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    }
+  }
+  updateClock();
+  setInterval(updateClock, 1000 * 30);
+
+  load();
+  setInterval(load, 1000 * 60); // auto-refresh every minute for the TV display
+</script>
+</body>
+</html>

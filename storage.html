@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Catalistics: shared settings (storage, targets, links). Must load before the page scripts. -->
+<script src="catalistics-settings.js" onerror="this.remove()"></script>
+<script src="catalistics-config.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Storage &amp; settings · Catalistics</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--cx-app-bg); color: var(--cx-text); font-size: 14px; line-height: 20px; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 24px 32px 96px; }
+  .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+  .page-head h1 { margin: 0 0 4px; font-size: 28px; line-height: 36px; }
+  .page-head p { margin: 0; color: var(--cx-text-2); max-width: 720px; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { height: 32px; padding: 0 16px; font: 700 14px var(--cx-font); border-radius: 2px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 24px; align-items: start; }
+  .toc { position: sticky; top: calc(var(--cx-top-h) + 16px); background: #fff; border: 1px solid var(--cx-border); padding: 8px 0; }
+  .toc a { display: block; padding: 7px 16px; color: var(--cx-text); text-decoration: none; border-left: 3px solid transparent; }
+  .toc a:hover { background: var(--cx-hover); }
+  .toc a.on { border-left-color: var(--cx-orange); font-weight: 700; background: var(--cx-orange-soft); }
+  .toc .st { float: right; font-size: 11px; font-weight: 700; }
+  .card { background: #fff; border: 1px solid var(--cx-border); margin-bottom: 20px; box-shadow: var(--cx-shadow); scroll-margin-top: 80px; }
+  .card-h { padding: 14px 20px; border-bottom: 1px solid var(--cx-border); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .card-h h2 { margin: 0; font-size: 18px; line-height: 24px; font-weight: 700; }
+  .card-h .sub { color: var(--cx-text-2); font-size: 13px; margin-top: 2px; }
+  .card-b { padding: 16px 20px 20px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px 20px; }
+  .field label { display: block; font-weight: 700; font-size: 13px; margin-bottom: 4px; color: var(--cx-text); }
+  .field .hint { display: block; font-size: 12px; color: var(--cx-text-2); margin-top: 3px; line-height: 16px; }
+  .field input, .field select, .field textarea { width: 100%; height: 32px; padding: 0 10px; font: 14px var(--cx-font); }
+  .field textarea { height: 96px; padding: 8px 10px; font-family: var(--cx-mono); font-size: 12px; resize: vertical; }
+  .field .with-unit { position: relative; }
+  .field .with-unit span { position: absolute; right: 10px; top: 6px; color: var(--cx-text-2); font-size: 13px; pointer-events: none; }
+  .field .with-unit input { padding-right: 64px; }
+  .slot { border: 1px solid var(--cx-border); margin-bottom: 16px; }
+  .slot-h { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; background: #FAFAFA; border-bottom: 1px solid var(--cx-border); flex-wrap: wrap; }
+  .slot-h strong { font-size: 14px; }
+  .slot-h .sub { color: var(--cx-text-2); font-size: 12px; }
+  .slot-b { padding: 14px 16px 16px; }
+  .paste { margin-top: 14px; }
+  .paste summary { cursor: pointer; color: var(--cx-info); font-weight: 600; }
+  .row-actions { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  .status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+  .status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .status.ok { color: var(--cx-success); } .status.warn { color: var(--cx-warning-text); } .status.err { color: var(--cx-error); } .status.off { color: var(--cx-text-3); }
+  .alert { display: flex; gap: 10px; padding: 12px 16px; border: 1px solid; margin-bottom: 16px; font-size: 13px; line-height: 19px; }
+  .alert svg { width: 18px; height: 18px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 2; margin-top: 1px; }
+  .alert.info { background: var(--cx-info-soft); border-color: #B5D6F4; color: #033160; }
+  .alert.warn { background: var(--cx-warning-soft); border-color: #F5C26B; color: #6B4C00; }
+  .alert strong { display: block; margin-bottom: 2px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .tile { border: 1px solid var(--cx-border); padding: 14px 16px; cursor: pointer; display: flex; gap: 12px; align-items: flex-start; background: #fff; }
+  .tile input { margin-top: 3px; }
+  .tile strong { display: block; }
+  .tile span { color: var(--cx-text-2); font-size: 13px; }
+  .tile.on { border-color: var(--cx-info); box-shadow: inset 0 0 0 1px var(--cx-info); background: var(--cx-info-soft); }
+  .switch { display: flex; gap: 12px; align-items: flex-start; }
+  .switch input { width: 36px; height: 20px; appearance: none; -webkit-appearance: none; background: #AAB7B8; border-radius: 10px; position: relative; cursor: pointer; flex: 0 0 auto; margin: 0; transition: background .15s; }
+  .switch input::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .15s; }
+  .switch input:checked { background: var(--cx-info); }
+  .switch input:checked::after { left: 18px; }
+  .switch strong { display: block; }
+  .switch span { color: var(--cx-text-2); font-size: 13px; }
+  .savebar { position: fixed; right: 0; bottom: 0; left: var(--cx-sbw); background: #fff; border-top: 1px solid var(--cx-border); padding: 10px 32px; display: flex; justify-content: flex-end; align-items: center; gap: 12px; z-index: 900; box-shadow: 0 -1px 3px rgba(0,28,36,.08); transition: left .18s ease; }
+  html.cx-collapsed .savebar { left: var(--cx-sbw-collapsed); }
+  html.cx-embedded .savebar { left: 0; }
+  .savebar .dirty { color: var(--cx-warning-text); font-weight: 600; margin-right: auto; display: none; }
+  .savebar.is-dirty .dirty { display: inline; }
+  .kv { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .kv td { padding: 8px 0; border-bottom: 1px solid #EAEDED; vertical-align: top; }
+  .kv td:first-child { color: var(--cx-text-2); width: 40%; }
+  code { background: var(--cx-app-bg); padding: 1px 5px; font-size: 12px; }
+  @media (max-width: 900px) {
+    .wrap { padding: 16px 16px 120px; }
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static; display: flex; overflow-x: auto; padding: 0; }
+    .toc a { border-left: 0; border-bottom: 3px solid transparent; white-space: nowrap; }
+    .toc a.on { border-bottom-color: var(--cx-orange); }
+    .toc .st { display: none; }
+    .savebar { left: 0; padding: 10px 16px; }
+  }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="catalistics-theme.css">
+<script src="catalistics-shell.js" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="page-head">
+    <div>
+      <h1>Storage &amp; settings</h1>
+      <p>Connect your data storage and set the targets, links and sign-in rules every Catalistics page uses. Settings save in this browser straight away; download the settings file to give every user the same setup.</p>
+    </div>
+    <div class="actions">
+      <button class="btn cx-btn" type="button" id="importBtn">Import</button>
+      <button class="btn cx-btn" type="button" id="exportBtn">Download settings file</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <nav class="toc" id="toc">
+      <a href="#provider" class="on">Storage provider</a>
+      <a href="#firebase">Firebase <span class="st" id="st-firebase"></span></a>
+      <a href="#aws">AWS <span class="st" id="st-aws"></span></a>
+      <a href="#ai">Catalistics AI <span class="st" id="st-ai"></span></a>
+      <a href="#targets">Targets <span class="st" id="st-targets"></span></a>
+      <a href="#links">Linked systems</a>
+      <a href="#security">Sign-in &amp; security</a>
+      <a href="#deploy">Share with users</a>
+    </nav>
+
+    <div>
+      <!-- Provider -->
+      <section class="card" id="provider">
+        <div class="card-h"><div><h2>Storage provider</h2><div class="sub">Where Catalistics reads and saves its data.</div></div></div>
+        <div class="card-b">
+          <div class="tiles">
+            <label class="tile" data-prov="firebase"><input type="radio" name="provider" value="firebase"><div><strong>Google Firebase</strong><span>Cloud Firestore databases and Firebase Storage for uploaded files.</span></div></label>
+            <label class="tile" data-prov="aws"><input type="radio" name="provider" value="aws"><div><strong>Amazon Web Services</strong><span>AWS account details for S3 file storage and AWS-based integrations.</span></div></label>
+          </div>
+          <div class="alert info" id="awsNote" style="margin:16px 0 0;display:none">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/></svg>
+            <div><strong>The pages still need a Firebase database</strong>Every page reads and saves its records through Cloud Firestore. AWS details are saved and made available to all pages, but records keep going to the Firebase databases below until an AWS data connector is added.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Firebase -->
+      <section class="card" id="firebase">
+        <div class="card-h"><div><h2>Firebase</h2><div class="sub">Copy these from the Firebase console › Project settings › Your apps › SDK setup and configuration.</div></div></div>
+        <div class="card-b" id="fbSlots"></div>
+      </section>
+
+      <!-- AWS -->
+      <section class="card" id="aws">
+        <div class="card-h"><div><h2>Amazon Web Services</h2><div class="sub">Only needed if you use AWS.</div></div></div>
+        <div class="card-b">
+          <div class="alert warn">
+            <svg viewBox="0 0 24 24"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17v.5"/></svg>
+            <div><strong>Use limited credentials</strong>Anything entered here can be read by someone using this browser. Prefer a Cognito identity pool, or an IAM user restricted to the one bucket and tables Catalistics needs. Never use root account keys.</div>
+          </div>
+          <div class="grid" id="awsFields"></div>
+        </div>
+      </section>
+
+      <!-- AI -->
+      <section class="card" id="ai">
+        <div class="card-h"><div><h2>Catalistics AI</h2><div class="sub">The assistant sends questions to Google Gemini through your own Cloudflare Worker. See <code>catalistics-ai/SETUP.md</code>.</div></div></div>
+        <div class="card-b">
+          <div class="grid">
+            <div class="field" style="grid-column:1/-1"><label for="aiEndpoint">Worker address</label><input id="aiEndpoint" data-path="ai.endpoint" placeholder="https://catalistics-ai.your-account.workers.dev" autocomplete="off"><span class="hint">The access code and the finance PIN are set on the Worker, not here.</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Targets -->
+      <section class="card" id="targets">
+        <div class="card-h"><div><h2>Targets</h2><div class="sub">Used by the Work Screen, office screens, league tables, graphs and Catalistics AI. Leave a target blank to show "Not set".</div></div></div>
+        <div class="card-b"><div class="grid" id="targetFields"></div></div>
+      </section>
+
+      <!-- Links -->
+      <section class="card" id="links">
+        <div class="card-h"><div><h2>Linked systems</h2><div class="sub">Addresses opened from buttons on the Work Screen and the engineer portal.</div></div></div>
+        <div class="card-b"><div class="grid" id="linkFields"></div></div>
+      </section>
+
+      <!-- Security -->
+      <section class="card" id="security">
+        <div class="card-h"><div><h2>Sign-in &amp; security</h2><div class="sub">Controls the password screens on the admin pages.</div></div></div>
+        <div class="card-b">
+          <label class="switch" style="margin-bottom:16px"><input type="checkbox" id="requireSignIn" data-path="security.requireSignIn"><div><strong>Require sign-in on admin pages</strong><span>When off, the engineer database, user management, notification manager and meeting-status changes open without a password. Team capacity and Additional payments use Firebase Authentication through <code>login.html</code>. The engineer portal always asks engineers to sign in.</span></div></label>
+          <div class="grid">
+            <div class="field"><label for="adminPassword">Administrator password</label><input id="adminPassword" type="password" data-path="security.adminPassword" autocomplete="new-password"><span class="hint">Asked for by the admin pages when sign-in is on.</span></div>
+          </div>
+          <div class="alert info" style="margin:16px 0 0">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/></svg>
+            <div>This password is checked in the browser, so it keeps casual visitors out rather than protecting the data. Protect the data itself with your Firebase security rules.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Deploy -->
+      <section class="card" id="deploy">
+        <div class="card-h"><div><h2>Share with users</h2><div class="sub">Settings here are saved in this browser only.</div></div></div>
+        <div class="card-b">
+          <p style="margin-top:0">To give everyone the same settings, download the settings file and publish <code>catalistics-settings.js</code> in the same folder as the pages. Settings saved in a browser still override the file for that browser.</p>
+          <label class="switch" style="margin:12px 0 16px"><input type="checkbox" id="incSecrets"><div><strong>Include secrets in the file</strong><span>Adds the AWS secret key and the administrator password. Leave off for a file that will be published on a website.</span></div></label>
+          <table class="kv" id="summary"></table>
+          <div class="row-actions">
+            <button class="btn cx-btn" type="button" id="exportBtn2">Download settings file</button>
+            <button class="btn cx-btn-danger" type="button" id="clearBtn">Clear this browser's settings</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="savebar" id="savebar">
+  <span class="dirty">You have unsaved changes</span>
+  <button class="btn cx-btn" type="button" id="revertBtn">Discard</button>
+  <button class="btn cx-btn-primary" type="button" id="saveBtn">Save settings</button>
+</div>
+<input type="file" id="importFile" accept=".js,.json,application/json,text/javascript" hidden>
+
+<script>
+(function () {
+  'use strict';
+  var CX = window.CATALISTICS;
+  var FB_FIELDS = [
+    ['apiKey', 'API key'], ['authDomain', 'Auth domain'], ['projectId', 'Project ID'], ['storageBucket', 'Storage bucket'],
+    ['messagingSenderId', 'Messaging sender ID'], ['appId', 'App ID'], ['measurementId', 'Measurement ID (optional)']
+  ];
+  var AWS_FIELDS = [
+    ['region', 'Region', 'e.g. eu-west-2'], ['accessKeyId', 'Access key ID', ''], ['secretAccessKey', 'Secret access key', '', 'password'],
+    ['sessionToken', 'Session token (optional)', '', 'password'], ['identityPoolId', 'Cognito identity pool ID (optional)', 'eu-west-2:xxxxxxxx-…'],
+    ['s3Bucket', 'S3 bucket for uploaded files', ''], ['dynamoTablePrefix', 'DynamoDB table prefix (optional)', 'catalistics_'],
+    ['apiBaseUrl', 'API Gateway address (optional)', 'https://…execute-api…amazonaws.com']
+  ];
+
+  var state = JSON.parse(JSON.stringify(CX.readLocal() || {}));
+  var saved = JSON.stringify(state);
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  function getPath(o, p) { return p.split('.').reduce(function (a, k) { return a && a[k]; }, o); }
+  function setPath(o, p, v) { var ks = p.split('.'), last = ks.pop(); ks.forEach(function (k) { if (!o[k] || typeof o[k] !== 'object') o[k] = {}; o = o[k]; }); if (v === '' || v === null || v === undefined) delete o[last]; else o[last] = v; }
+  // Values deployed in catalistics-settings.js show as placeholders
+  var defaults = window.CATALISTICS_DEFAULTS || {};
+
+  function fieldHtml(path, label, opts) {
+    opts = opts || {};
+    var dv = getPath(defaults, path);
+    var ph = dv !== undefined && dv !== '' && opts.type !== 'password' ? 'From settings file: ' + dv : (opts.placeholder || '');
+    var input = '<input id="f-' + path.replace(/\./g, '-') + '" data-path="' + path + '"' + (opts.type ? ' type="' + opts.type + '"' : '') +
+      (opts.num ? ' inputmode="decimal"' : '') + ' placeholder="' + esc(ph) + '" autocomplete="off" spellcheck="false">';
+    if (opts.unit) input = '<div class="with-unit">' + input + '<span>' + esc(opts.unit) + '</span></div>';
+    return '<div class="field"><label for="f-' + path.replace(/\./g, '-') + '">' + esc(label) + '</label>' + input + (opts.hint ? '<span class="hint">' + esc(opts.hint) + '</span>' : '') + '</div>';
+  }
+
+  // Build Firebase slots
+  var fbHtml = '';
+  Object.keys(CX.DB_SLOTS).forEach(function (slot) {
+    var d = CX.DB_SLOTS[slot];
+    fbHtml += '<div class="slot" data-slot="' + slot + '"><div class="slot-h"><div><strong>' + esc(d.label) + '</strong><div class="sub">' + esc(d.help) + '</div></div><span class="status off" id="fbst-' + slot + '">Not connected</span></div><div class="slot-b"><div class="grid">';
+    FB_FIELDS.forEach(function (f) { fbHtml += fieldHtml('firebase.' + slot + '.' + f[0], f[1]); });
+    fbHtml += '</div><details class="paste"><summary>Paste the firebaseConfig snippet instead</summary><div class="field" style="margin-top:8px"><textarea data-paste="' + slot + '" placeholder="const firebaseConfig = {\n  apiKey: &quot;…&quot;,\n  projectId: &quot;…&quot;, …\n};"></textarea></div><div class="row-actions"><button class="btn cx-btn" type="button" data-fill="' + slot + '">Fill in the fields</button></div></details>' +
+      '<div class="row-actions"><button class="btn cx-btn" type="button" data-test="' + slot + '">Test connection</button><span id="test-' + slot + '" class="status off" style="display:none"></span></div></div></div>';
+  });
+  document.getElementById('fbSlots').innerHTML = fbHtml;
+
+  document.getElementById('awsFields').innerHTML = AWS_FIELDS.map(function (f) { return fieldHtml('aws.' + f[0], f[1], { placeholder: f[2], type: f[3] }); }).join('');
+  document.getElementById('targetFields').innerHTML = Object.keys(CX.TARGET_DEFS).map(function (k) {
+    var t = CX.TARGET_DEFS[k]; return fieldHtml('targets.' + k, t.label, { unit: t.unit, hint: t.help, num: true, placeholder: 'Not set' });
+  }).join('');
+  document.getElementById('linkFields').innerHTML = Object.keys(CX.LINK_DEFS).map(function (k) {
+    var l = CX.LINK_DEFS[k]; return fieldHtml('links.' + k, l.label, { hint: l.help, placeholder: k === 'supportWhatsApp' ? '447700900000' : 'https://' });
+  }).join('');
+
+  var inputs = function () { return document.querySelectorAll('[data-path]'); };
+  function load() {
+    inputs().forEach(function (el) {
+      var v = getPath(state, el.dataset.path);
+      if (el.type === 'checkbox') el.checked = !!v; else el.value = v == null ? '' : v;
+    });
+    var prov = state.provider || 'firebase';
+    document.querySelectorAll('input[name=provider]').forEach(function (r) { r.checked = r.value === prov; });
+    refresh();
+  }
+  function read(el) {
+    var p = el.dataset.path, v;
+    if (el.type === 'checkbox') v = el.checked;
+    else { v = el.value.trim(); if (p.indexOf('targets.') === 0 && v !== '') { var n = Number(v.replace(/[%,\s]/g, '')); v = isFinite(n) ? n : v; } }
+    setPath(state, p, v === false ? undefined : v);
+  }
+  function merged() { return CX.deepMerge(defaults, state); }
+  function refresh() {
+    var m = merged();
+    var prov = m.provider || 'firebase';
+    document.querySelectorAll('.tile').forEach(function (t) { t.classList.toggle('on', t.dataset.prov === prov); });
+    document.getElementById('awsNote').style.display = prov === 'aws' ? 'flex' : 'none';
+    Object.keys(CX.DB_SLOTS).forEach(function (slot) {
+      var c = (m.firebase || {})[slot] || {}, el = document.getElementById('fbst-' + slot);
+      var ok = c.apiKey && c.projectId && c.appId;
+      el.className = 'status ' + (ok ? 'ok' : slot === 'primary' ? 'warn' : 'off');
+      el.textContent = ok ? 'Configured · ' + c.projectId : slot === 'primary' ? 'Required' : 'Uses primary';
+    });
+    var fbOk = !!(((m.firebase || {}).primary || {}).apiKey && m.firebase.primary.projectId && m.firebase.primary.appId);
+    var aws = m.aws || {}, awsOk = !!(aws.region && (aws.accessKeyId || aws.identityPoolId));
+    var nT = Object.keys(CX.TARGET_DEFS).filter(function (k) { var v = (m.targets || {})[k]; return v !== undefined && v !== ''; }).length;
+    var ai = !!((m.ai || {}).endpoint);
+    setSt('st-firebase', fbOk ? 'ok' : 'warn', fbOk ? '●' : '!');
+    setSt('st-aws', awsOk ? 'ok' : 'off', awsOk ? '●' : '');
+    setSt('st-ai', ai ? 'ok' : 'off', ai ? '●' : '');
+    setSt('st-targets', nT ? 'ok' : 'off', nT + '/' + Object.keys(CX.TARGET_DEFS).length);
+    var rows = [
+      ['Storage provider', prov === 'aws' ? 'Amazon Web Services' : 'Google Firebase'],
+      ['Primary database', fbOk ? m.firebase.primary.projectId : 'Not connected'],
+      ['AWS', awsOk ? (aws.region + (aws.s3Bucket ? ' · ' + aws.s3Bucket : '')) : 'Not set'],
+      ['Catalistics AI', ai ? m.ai.endpoint : 'Not set'],
+      ['Targets set', nT + ' of ' + Object.keys(CX.TARGET_DEFS).length],
+      ['Sign-in on admin pages', (m.security || {}).requireSignIn ? 'Required' : 'Off'],
+      ['Settings file', window.CATALISTICS_DEFAULTS ? 'catalistics-settings.js is published' : 'Not published yet']
+    ];
+    document.getElementById('summary').innerHTML = rows.map(function (r) { return '<tr><td>' + esc(r[0]) + '</td><td>' + esc(r[1]) + '</td></tr>'; }).join('');
+    document.getElementById('savebar').classList.toggle('is-dirty', JSON.stringify(state) !== saved);
+  }
+  function setSt(id, cls, txt) { var el = document.getElementById(id); el.className = 'st ' + ({ ok: 'status ok', warn: 'status warn', off: '' }[cls] || ''); el.textContent = txt; el.style.color = cls === 'ok' ? 'var(--cx-success)' : cls === 'warn' ? 'var(--cx-warning-text)' : 'var(--cx-text-3)'; if (cls) el.classList.remove('status'); }
+
+  document.addEventListener('input', function (e) { if (e.target.dataset && e.target.dataset.path) { read(e.target); refresh(); } });
+  document.addEventListener('change', function (e) {
+    if (e.target.name === 'provider') { state.provider = e.target.value; refresh(); }
+    else if (e.target.dataset && e.target.dataset.path) { read(e.target); refresh(); }
+  });
+
+  // Paste a firebaseConfig snippet
+  function parseSnippet(txt) {
+    var out = {};
+    FB_FIELDS.forEach(function (f) {
+      var m = txt.match(new RegExp('["\']?' + f[0] + '["\']?\\s*:\\s*["\']([^"\']+)["\']'));
+      if (m) out[f[0]] = m[1];
+    });
+    return out;
+  }
+  document.addEventListener('click', function (e) {
+    var fill = e.target.closest('[data-fill]');
+    if (fill) {
+      var slot = fill.dataset.fill, txt = document.querySelector('[data-paste="' + slot + '"]').value;
+      var cfg = parseSnippet(txt);
+      if (!cfg.apiKey || !cfg.projectId) { CXShell.toast('Could not find apiKey and projectId in that text.', 'error'); return; }
+      Object.keys(cfg).forEach(function (k) { setPath(state, 'firebase.' + slot + '.' + k, cfg[k]); });
+      load(); CXShell.toast('Firebase details filled in. Save to keep them.', 'success');
+    }
+    var test = e.target.closest('[data-test]');
+    if (test) testConnection(test.dataset.test);
+  });
+
+  async function testConnection(slot) {
+    var out = document.getElementById('test-' + slot);
+    var cfg = CX.deepMerge((merged().firebase || {})[slot] || {}, {});
+    out.style.display = 'inline-flex';
+    if (!cfg.apiKey || !cfg.projectId || !cfg.appId) { out.className = 'status warn'; out.textContent = 'Enter the API key, project ID and app ID first'; return; }
+    out.className = 'status off'; out.textContent = 'Testing…';
+    try {
+      var appMod = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
+      var fsMod = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+      var name = 'cx-test-' + slot + '-' + Date.now();
+      var app = appMod.initializeApp(cfg, name);
+      var db = fsMod.getFirestore(app);
+      var timer = new Promise(function (_, rej) { setTimeout(function () { rej(new Error('No reply after 10 seconds - check the project ID and your network')); }, 10000); });
+      await Promise.race([fsMod.getDocs(fsMod.query(fsMod.collection(db, 'engineers'), fsMod.limit(1))), timer]);
+      out.className = 'status ok'; out.textContent = 'Connected to ' + cfg.projectId;
+      appMod.deleteApp && appMod.deleteApp(app);
+    } catch (err) {
+      var msg = String(err && err.message || err);
+      if (/permission/i.test(msg)) { out.className = 'status ok'; out.textContent = 'Reached ' + cfg.projectId + ' (security rules blocked the test read)'; }
+      else { out.className = 'status err'; out.textContent = msg.slice(0, 140); }
+    }
+  }
+
+  document.getElementById('saveBtn').addEventListener('click', function () {
+    CX.save(state); saved = JSON.stringify(state); refresh();
+    CXShell.toast('Settings saved. Other pages pick them up the next time they open.', 'success');
+  });
+  document.getElementById('revertBtn').addEventListener('click', function () { state = JSON.parse(saved); load(); });
+  document.getElementById('clearBtn').addEventListener('click', function () {
+    if (!confirm('Remove all Catalistics settings saved in this browser?')) return;
+    CX.clearLocal(); state = {}; saved = '{}'; load(); CXShell.toast('Settings cleared from this browser.', 'warning');
+  });
+
+  function exportFile() {
+    var data = JSON.parse(JSON.stringify(merged()));
+    if (!document.getElementById('incSecrets').checked) {
+      if (data.aws) { delete data.aws.secretAccessKey; delete data.aws.sessionToken; }
+      if (data.security) delete data.security.adminPassword;
+    }
+    delete data.display;
+    var txt = '/* Catalistics settings - generated ' + new Date().toISOString().slice(0, 10) + ' on storage.html.\n   Publish this file next to the pages so every user gets the same storage, targets and links. */\n' +
+      'window.CATALISTICS_DEFAULTS = ' + JSON.stringify(data, null, 2) + ';\n';
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([txt], { type: 'text/javascript' }));
+    a.download = 'catalistics-settings.js'; document.body.appendChild(a); a.click(); a.remove();
+  }
+  document.getElementById('exportBtn').addEventListener('click', exportFile);
+  document.getElementById('exportBtn2').addEventListener('click', exportFile);
+  document.getElementById('importBtn').addEventListener('click', function () { document.getElementById('importFile').click(); });
+  document.getElementById('importFile').addEventListener('change', function (e) {
+    var f = e.target.files[0]; if (!f) return;
+    f.text().then(function (txt) {
+      var json = txt.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[\s\S]*?=\s*/, '').replace(/;\s*$/, '');
+      try { state = CX.deepMerge(state, JSON.parse(txt.trim().charAt(0) === '{' ? txt : json)); load(); CXShell.toast('Settings imported. Check them, then save.', 'success'); }
+      catch (err) { CXShell.toast('That file could not be read as Catalistics settings.', 'error'); }
+      e.target.value = '';
+    });
+  });
+
+  // In-page navigation highlight
+  var links = document.querySelectorAll('#toc a');
+  var secs = Array.prototype.map.call(links, function (a) { return document.querySelector(a.getAttribute('href')); });
+  window.addEventListener('scroll', function () {
+    var y = window.scrollY + 120, idx = 0;
+    secs.forEach(function (s, i) { if (s && s.offsetTop <= y) idx = i; });
+    links.forEach(function (a, i) { a.classList.toggle('on', i === idx); });
+  }, { passive: true });
+  window.addEventListener('beforeunload', function (e) { if (JSON.stringify(state) !== saved) { e.preventDefault(); e.returnValue = ''; } });
+
+  load();
+})();
+</script>
+</body>
+</html>

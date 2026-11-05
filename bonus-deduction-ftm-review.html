@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<!-- Catalistics: shared settings (storage, targets, links). Must load before the page scripts. -->
+<script src="catalistics-settings.js" onerror="this.remove()"></script>
+<script src="catalistics-config.js"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FTM Review · Catalistics</title>
+    <style>
+        :root {
+            --bg: #F2F3F3;
+            --surface: #FFFFFF;
+            --surface2: #FFFFFF;
+            --border: #D5DBDB;
+            --border-hi: #0972D3;
+            --amber: #FF9900;
+            --cyan: #067F68;
+            --purple: #0972D3;
+            --brand: #0972D3;
+            --success: #1D8102;
+            --text: #161E2D;
+            --text-mid: #545B64;
+            --text-dim: #545B64;
+            --danger: #D13212;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { height: 100%; }
+
+        body {
+            font-family: var(--cx-font);
+            background: #F2F3F3; color: var(--text);
+            min-height: 100vh; display: flex; flex-direction: column;
+        }
+
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background-image: linear-gradient(rgba(9,114,211,0.01) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(9,114,211,0.01) 1px, transparent 1px);
+            background-size: 40px 40px; pointer-events: none; z-index: 0;
+        }
+        body::after {
+            content: ''; position: fixed; top: -200px; left: 50%;
+            transform: translateX(-50%); width: 800px; height: 600px;
+            background: radial-gradient(ellipse, rgba(9,114,211,0.028) 0%, transparent 70%);
+            pointer-events: none; z-index: 0;
+        }
+
+        .topbar {
+            position: relative; z-index: 10;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 48px; height: 64px;
+            border-bottom: 1px solid var(--border);
+            background: #F2F3F3; backdrop-filter: blur(12px);
+        }
+        .topbar-brand { display: flex; align-items: center; gap: 12px; }
+        .brand-mark {
+            width: 32px; height: 32px; background: var(--brand);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        }
+        .brand-name {
+            font-family: var(--cx-font);
+            font-size: 1.35rem; font-weight: 700;
+            letter-spacing: 0.12em; text-transform: uppercase; color: var(--text);
+        }
+        .brand-name span { color: var(--brand); }
+        .back-link {
+            font-family: var(--cx-font); font-size: 0.98rem;
+            letter-spacing: 0.08em; text-transform: uppercase;
+            color: var(--text); text-decoration: none;
+            border: 1px solid var(--border-hi); padding: 0.35rem 0.8rem;
+            border-radius: 4px; transition: all 0.2s;
+        }
+        .back-link:hover { color: var(--brand); border-color: var(--brand); }
+
+        .hero {
+            position: relative; z-index: 10;
+            padding: 48px 48px 32px;
+        }
+        .hero-label {
+            font-family: var(--cx-font); font-size: 0.98rem;
+            letter-spacing: 0.16em; text-transform: uppercase;
+            color: var(--brand); margin-bottom: 12px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .hero-label::before { content: ''; display: block; width: 24px; height: 1px; background: var(--brand); }
+        .hero-title {
+            font-family: var(--cx-font);
+            font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 900;
+            line-height: 0.95; text-transform: uppercase; color: var(--text); margin-bottom: 12px;
+        }
+        .hero-title em { font-style: normal; color: var(--brand); }
+        .hero-sub { font-size: 1.1rem; font-weight: 400; color: var(--text-mid); max-width: 70ch; }
+
+        .content { position: relative; z-index: 10; padding: 0 48px 64px; flex: 1; }
+
+        .controls-bar {
+            display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 4px; padding: 20px 24px; margin-bottom: 20px;
+        }
+        .ctrl-group { display: flex; flex-direction: column; gap: 8px; }
+        .ctrl-label {
+            font-family: var(--cx-font); font-size: 0.95rem;
+            letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-mid);
+        }
+        .ctrl-input, .ctrl-select {
+            background: var(--bg); border: 1px solid var(--border);
+            color: var(--text); padding: 0.6rem 1rem; border-radius: 4px;
+            font-family: var(--cx-font); font-size: 1.06rem; transition: border 0.2s;
+        }
+        .ctrl-input:focus, .ctrl-select:focus { outline: none; border-color: var(--brand); }
+
+        .btn-save {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--brand); border: none; color: #0A1220;
+            padding: 0.6rem 1.3rem; border-radius: 4px;
+            font-family: var(--cx-font);
+            font-size: 1.06rem; font-weight: 700; letter-spacing: 0.06em;
+            text-transform: uppercase; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+        }
+        .btn-save:hover { background: #0972D3; transform: none; }
+        .btn-save:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .message {
+            padding: 12px 16px; border-radius: 4px;
+            font-family: var(--cx-font); font-size: 1.0rem;
+            margin-bottom: 16px; display: none;
+        }
+        .message.show { display: block; }
+        .message.success { background: #F2F8F0; color: var(--success); border: 1px solid rgba(29,129,2,0.35); }
+        .message.error   { background: #FDF3F1; color: var(--danger); border: 1px solid rgba(209,50,18,0.35); }
+        .message.warning { background: #FFF7E8; color: var(--amber); border: 1px solid rgba(255,153,0,0.35); }
+
+        .loading-state {
+            padding: 60px; text-align: center;
+            color: var(--text-mid); font-family: var(--cx-font); font-size: 1.11rem;
+        }
+        .spinner {
+            display: inline-block; width: 20px; height: 20px;
+            border: 2px solid var(--border); border-top-color: var(--brand);
+            border-radius: 50%; animation: spin 0.7s linear infinite;
+            margin-right: 10px; vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .empty-state {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 4px; padding: 48px; text-align: center;
+            color: var(--text-mid); font-size: 1.17rem;
+        }
+        .empty-state strong { color: var(--success); }
+
+        .uptodate-note {
+            display: none;
+            align-items: center; gap: 8px;
+            background: #F2F8F0; border: 1px solid rgba(29,129,2,0.35);
+            border-radius: 4px; padding: 10px 16px; margin-bottom: 16px;
+            font-family: var(--cx-font); font-size: 0.98rem; color: var(--success);
+        }
+        .uptodate-note.show { display: flex; }
+
+        /* ── MONTH VIEW: engineer groups with weekly cards ── */
+        .eng-group { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+        .eng-group.has-due { border-color: rgba(255,153,0,0.55); box-shadow: 0 1px 2px rgba(0,28,36,0.10); }
+        .eng-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 16px 20px; background: var(--surface2); border-bottom: 1px solid var(--border); }
+        .eng-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .wk-chip { font-family: var(--cx-font); font-size: 0.87rem; padding: 3px 9px; border-radius: 4px; border: 1px solid var(--border-hi); color: var(--text-dim); }
+        .wk-chip.done { border-color: rgba(29,129,2,0.4); color: var(--success); background: #F2F8F0; }
+        .wk-chip.todo { border-color: var(--border-hi); color: var(--text-mid); }
+        .wk-chip.due { border-color: var(--amber); color: #1A1205; background: var(--amber); font-weight: 600; }
+        .eng-body { display: flex; flex-direction: column; gap: 12px; padding: 14px; }
+        .review-card .rc-head { cursor: pointer; }
+        .review-card.collapsed > :not(.rc-head) { display: none; }
+        .review-card.collapsed .rc-head { border-bottom: none; }
+        .rc-week { font-weight: 700; font-size: 1.08rem; color: var(--text); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .rc-chev { font-family: var(--cx-font); font-size: 1.0rem; color: var(--text-dim); width: 12px; display: inline-block; }
+        .wk-badge { font-family: var(--cx-font); font-size: 0.82rem; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+        .wk-badge.due { background: var(--amber); color: #1A1205; }
+        .wk-badge.done { background: #F2F8F0; color: var(--success); border: 1px solid rgba(29,129,2,0.35); }
+        .wk-badge.todo { background: rgba(0,28,36,0.06); color: var(--text-mid); border: 1px solid var(--border-hi); }
+        .rc-split-note { font-family: var(--cx-font); font-size: 0.87rem; color: var(--text-mid); margin-top: 4px; }
+        .review-card.due { border: 2px solid var(--amber); box-shadow: 0 1px 2px rgba(0,28,36,0.10); }
+        .review-card.due .rc-head { background: #FFF7E8; }
+        .review-card.done:not(.due) { opacity: 0.92; }
+        .month-summary { display: none; gap: 10px; flex-wrap: wrap; align-items: center; background: #FFF7E8; border: 1px solid rgba(255,153,0,0.35);
+            border-radius: 4px; padding: 10px 16px; margin-bottom: 16px; font-size: 1.07rem; color: var(--text-mid); }
+        .month-summary.show { display: flex; }
+        .month-summary b { color: var(--text); }
+        .month-summary .due-tag { background: var(--amber); color: #1A1205; font-family: var(--cx-font); font-size: 0.87rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        /* ── ENGINEER REVIEW CARD ── */
+        #cardsContainer { display: flex; flex-direction: column; gap: 16px; }
+        .review-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 4px; overflow: hidden;
+        }
+        .rc-head {
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+            padding: 18px 22px; border-bottom: 1px solid var(--border);
+            background: var(--surface2);
+        }
+        .rc-name { font-weight: 700; font-size: 1.17rem; color: var(--text); }
+        .rc-leader { font-family: var(--cx-font); font-size: 0.91rem; color: var(--text-dim); margin-top: 2px; }
+        .rc-prev-badge { font-family: var(--cx-font); font-size: 0.87rem; color: var(--amber); margin-top: 4px; }
+        .rc-total-pill {
+            font-family: var(--cx-font); font-weight: 700; font-size: 1.3rem;
+            padding: 6px 16px; border-radius: 4px;
+            background: rgba(0,28,36,0.06); border: 1px solid var(--border-hi); color: var(--text-mid);
+        }
+        .rc-total-pill.active { background: #FDF3F1; border-color: rgba(209,50,18,0.5); color: var(--danger); }
+        .rc-total-label { font-family: var(--cx-font); font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); text-align: right; margin-bottom: 4px; }
+
+        .rc-context {
+            display: flex; gap: 28px; flex-wrap: wrap;
+            padding: 14px 22px; border-bottom: 1px solid var(--border);
+            font-family: var(--cx-font); font-size: 0.96rem; color: var(--text-mid);
+        }
+        .rc-context b { color: var(--text); font-weight: 600; }
+
+        .rc-rows { padding: 6px 22px; }
+        .rc-row {
+            display: flex; align-items: center; justify-content: space-between; gap: 16px;
+            padding: 14px 0; border-bottom: 1px solid rgba(44,59,79,0.6);
+        }
+        .rc-row:last-child { border-bottom: none; }
+        .rc-row-info { flex: 1; min-width: 220px; }
+        .rc-row-label { font-weight: 600; font-size: 1.15rem; color: var(--text); display: flex; align-items: center; gap: 8px; }
+        .rc-row-pct { font-family: var(--cx-font); font-size: 0.98rem; color: var(--amber); font-weight: 600; }
+        .rc-row-detail { font-size: 1.02rem; color: var(--text-mid); margin-top: 3px; line-height: 1.4; }
+
+        .toggle-pair { display: flex; gap: 6px; flex-shrink: 0; }
+        .toggle-btn {
+            font-family: var(--cx-font); font-weight: 700; font-size: 0.98rem;
+            letter-spacing: 0.05em; text-transform: uppercase;
+            padding: 0.4rem 0.9rem; border-radius: 4px; cursor: pointer;
+            border: 1px solid var(--border-hi); background: transparent; color: var(--text-dim);
+            transition: all 0.15s;
+        }
+        .toggle-btn.accept.on { background: #F2F8F0; border-color: var(--success); color: var(--success); }
+        .toggle-btn.remove.on { background: #FDF3F1; border-color: var(--danger); color: var(--danger); }
+
+        .rc-fixed-note {
+            font-family: var(--cx-font); font-size: 0.89rem; letter-spacing: 0.03em;
+            color: var(--text-dim); flex-shrink: 0; text-align: right; max-width: 170px; line-height: 1.4;
+        }
+
+        /* ── ABORTS SECTION ── */
+        .rc-aborts-section { border-top: 1px solid var(--border); }
+        .rc-aborts-head {
+            display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+            padding: 12px 22px 4px;
+        }
+        .rc-aborts-title {
+            font-family: var(--cx-font); font-size: 0.91rem; letter-spacing: 0.1em;
+            text-transform: uppercase; color: var(--purple);
+        }
+        .rc-aborts-note {
+            font-size: 0.98rem; color: var(--text-dim); max-width: 60ch;
+        }
+        .rc-aborts { padding: 2px 22px 6px; }
+        .rc-abort-row {
+            display: flex; align-items: center; justify-content: space-between; gap: 16px;
+            padding: 12px 0; border-bottom: 1px solid rgba(44,59,79,0.6);
+        }
+        .rc-abort-row:last-child { border-bottom: none; }
+        .rc-abort-info { flex: 1; min-width: 220px; }
+        .rc-abort-label { font-weight: 600; font-size: 1.11rem; color: var(--text); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .rc-abort-total { font-family: var(--cx-font); font-size: 0.93rem; color: var(--purple); font-weight: 600; }
+        .rc-abort-detail { font-size: 1.0rem; color: var(--text-mid); margin-top: 3px; line-height: 1.4; }
+        .rc-abort-empty { padding: 10px 0; font-size: 1.02rem; color: var(--text-dim); }
+        .toggle-btn.warranted.on { background: rgba(0,28,36,0.06); border-color: var(--border-hi); color: var(--text-mid); }
+        .toggle-btn.overturn.on { background: #F2F8FD; border-color: var(--purple); color: var(--purple); }
+        .rc-bonus-note { font-size: 0.98rem; color: var(--purple); margin-top: 4px; }
+
+        /* live bonus completion line under the Aborts header */
+        .rc-bonus-calc {
+            margin: 4px 22px 6px; padding: 8px 12px; border-radius: 4px;
+            background: rgba(9,114,211,0.028); border: 1px solid rgba(9,114,211,0.35);
+            font-family: var(--cx-font); font-size: 0.93rem; color: var(--text-mid);
+        }
+        .rc-bonus-calc b { color: var(--text); }
+        .rc-bonus-calc .ok { color: var(--success); font-weight: 600; }
+        .rc-bonus-calc .ded { color: var(--amber); font-weight: 600; }
+        .rc-context .adj { color: var(--purple); font-weight: 600; }
+        .rc-row-pct.zero { color: var(--success); }
+
+        /* evidence lines under Fleet / Housekeeping */
+        .rc-evidence { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
+        .rc-evidence div {
+            font-family: var(--cx-font); font-size: 0.91rem; color: var(--text-mid); line-height: 1.45;
+        }
+        .rc-evidence .ev-tag {
+            display: inline-block; min-width: 118px; color: var(--amber); font-weight: 500;
+        }
+
+        .rc-footer {
+            display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+            padding: 16px 22px; border-top: 1px solid var(--border);
+            background: var(--surface2);
+        }
+        .rc-status {
+            font-family: var(--cx-font); font-size: 0.96rem; color: var(--text-mid);
+        }
+        .rc-status.success { color: var(--success); }
+        .rc-status.error { color: var(--danger); }
+
+        @media (max-width: 768px) {
+            .topbar, .hero, .content { padding-left: 20px; padding-right: 20px; }
+            .hero { padding-top: 32px; }
+            .rc-row { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="catalistics-theme.css">
+<script src="catalistics-shell.js" defer></script>
+</head>
+<body>
+
+    <header class="topbar">
+        <div class="topbar-brand">
+            <div class="brand-mark"></div>
+            <div class="brand-name">Catalistics</div>
+        </div>
+        <a href="index.html" class="back-link">← Home</a>
+    </header>
+
+    <section class="hero">
+        <div class="hero-label">Weekly Review by Month — Stage 1</div>
+        <h1 class="hero-title">FTM <em>Review</em></h1>
+        <p class="hero-sub">Pick a month to see each engineer's weekly reviews for it. <b>Last week</b> — the one due for review now — is highlighted and opened for you; earlier weeks are there to check or amend. Accept or remove attendance and any flagged category, confirm or overturn each abort, then submit each week individually. Your decisions go forward to the month-end final review.</p>
+    </section>
+
+    <main class="content">
+
+        <div class="controls-bar">
+            <div class="ctrl-group">
+                <span class="ctrl-label">Month</span>
+                <input type="month" id="dataMonth" class="ctrl-input" required>
+            </div>
+            <div class="ctrl-group">
+                <span class="ctrl-label">Show</span>
+                <select id="showFilter" class="ctrl-select">
+                    <option value="all">Everything still to review</option>
+                    <option value="due">Last week only</option>
+                </select>
+            </div>
+            <div class="ctrl-group">
+                <span class="ctrl-label">Team</span>
+                <select id="teamFilter" class="ctrl-select">
+                    <option value="">All Teams</option>
+                </select>
+            </div>
+            <div class="ctrl-group">
+                <span class="ctrl-label">Reviewed By</span>
+                <input type="text" id="reviewerName" class="ctrl-input" placeholder="Your name">
+            </div>
+        </div>
+
+        <div id="message" class="message"></div>
+
+        <div id="loadingDiv" class="loading-state">
+            <span class="spinner"></span>Loading month data…
+        </div>
+
+        <div id="monthSummary" class="month-summary"></div>
+
+        <div id="emptyState" class="empty-state" style="display:none;">
+            <strong>Nothing to review.</strong><br>
+            <span id="emptyStateDetail">No engineer has anything to review for this month.</span>
+        </div>
+
+        <div id="cardsContainer" style="display:none;"></div>
+
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import {
+            getFirestore, collection, getDocs, setDoc,
+            query, where, doc, serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = CATALISTICS.firebaseConfig('primary');
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const SUBMISSIONS = "Bonus Deductions";
+        const REVIEWED = "Bonus Deductions Reviewed";
+        const ATT_DEDUCT_CODES = ['Sick', 'AAUP', 'AWOL'];
+        const ROW_KEYS = ['completion', 'attendance', 'customerService', 'fleet', 'housekeeping', 'complianceCat1', 'complianceCat2', 'complianceCat3'];
+
+        // ── Weeks run Monday–Sunday; picker defaults to the previous week. The deduction itself is
+        // still monthly: completion is judged month-to-date, and each category counts once per month
+        // on the engineer's bonus — the weekly pill is just what was accepted this week. ──
+        const isoDate = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const parseIso = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d, 12); };
+        function mondayOf(d) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+        function addDays(iso, n) { const d = parseIso(iso); d.setDate(d.getDate() + n); return isoDate(d); }
+        const weekEndOf = wk => addDays(wk, 6);
+        const inWeek = (date, wk) => !!date && date >= wk && date <= weekEndOf(wk);
+        // Calendar months a week touches, plus the "primary" month (the one holding the Thursday).
+        const monthsOfWeek = wk => [...new Set([0, 1, 2, 3, 4, 5, 6].map(n => addDays(wk, n).slice(0, 7)))];
+        const primaryMonthOf = wk => addDays(wk, 3).slice(0, 7);
+        const monthName = m => parseIso(m + '-01').toLocaleDateString('en-GB', { month: 'long' });
+        function weekRangeLabel(wk) {
+            const s = parseIso(wk), e = parseIso(weekEndOf(wk));
+            const f = (d, o) => d.toLocaleDateString('en-GB', o);
+            return `${f(s, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}  (${f(s, { day: 'numeric', month: 'short' })} – ${f(e, { day: 'numeric', month: 'short' })})`;
+        }
+        // The week due for review now is LAST week (Mon–Sun). The month picker defaults to the month
+        // that holds most of last week, so it opens straight onto what's due.
+        const THIS_MONDAY = isoDate(mondayOf(new Date()));
+        const LAST_MONDAY = addDays(THIS_MONDAY, -7);
+        const monthEndOf = m => { const [y, mo] = m.split('-').map(Number); return isoDate(new Date(y, mo, 0, 12)); };
+        // Weeks (Mondays) with at least one day in the month, up to and including last week —
+        // the current week isn't due yet.
+        function weeksOfMonth(m) {
+            const out = [];
+            for (let wk = isoDate(mondayOf(parseIso(m + '-01'))); wk <= monthEndOf(m) && wk <= LAST_MONDAY; wk = addDays(wk, 7)) out.push(wk);
+            return out;
+        }
+        const formatMonth = m => parseIso(m + '-01').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+        const shortDate = iso => parseIso(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        document.getElementById('dataMonth').value = primaryMonthOf(LAST_MONDAY);
+
+        // Engineers left out of the bonus deduction process altogether.
+        const EXCLUDED_ENGINEERS = [] // names left out of the bonus process
+            .map(n => n.toLowerCase().replace(/\s+/g, ' ').trim());
+        const isExcludedEngineer = e => EXCLUDED_ENGINEERS.includes(String((e && e.engineerName) || '').toLowerCase().replace(/\s+/g, ' ').trim());
+        let engineers = [];      // {id, engineerName, teamLeader}
+        let engineerRows = [];   // one entry per engineer *shown for review*
+
+        // Shows/hides the "N already reviewed and up to date" banner, and adjusts the empty-state
+        // message so an all-caught-up month doesn't read the same as a month with nothing at all.
+        function renderSummary(month) {
+            const el = document.getElementById('monthSummary');
+            const team = document.getElementById('teamFilter').value;
+            const rows = engineerRows.filter(r => !team || r.engineer.teamLeader === team);
+            const dueRows = rows.filter(r => r.due);
+            const dueTodo = dueRows.filter(r => r.status === 'todo').length;
+            const otherTodo = rows.filter(r => !r.due && r.status === 'todo').length;
+            if (!rows.length) { el.classList.remove('show'); return; }
+            const hasLast = weeksOfMonth(month).includes(LAST_MONDAY);
+            el.innerHTML = (hasLast
+                ? `<span class="due-tag">Due now</span> <span>Last week <b>w/c ${shortDate(LAST_MONDAY)}</b>: <b>${dueTodo}</b> engineer${dueTodo === 1 ? '' : 's'} to review` +
+                  (dueRows.length - dueTodo ? `, ${dueRows.length - dueTodo} already done` : '') + `.</span>`
+                : `<span>Last week (w/c ${shortDate(LAST_MONDAY)}) isn't in ${formatMonth(month)}.</span>`) +
+                (otherTodo ? ` <span>· ${otherTodo} earlier week${otherTodo === 1 ? '' : 's'} not yet reviewed.</span>` : '');
+            el.classList.add('show');
+        }
+
+        // ── Deduction maths (kept in sync with engineers2.html / bonus-deduction.html) ──
+        function completionDeductPct(ratePct) {
+            if (ratePct === null || ratePct === undefined) return 0;
+            if (ratePct < 85) return 10;
+            if (ratePct <= 87.5) return 5;
+            if (ratePct <= 89.9) return 2.5;
+            return 0;
+        }
+        function fmtPct(n) {
+            const r = Math.round(n * 10) / 10;
+            return (Number.isInteger(r) ? r.toFixed(0) : r.toFixed(1));
+        }
+        function fmtDateList(dates) {
+            if (!Array.isArray(dates) || !dates.length) return '';
+            return dates.map(d => {
+                const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+                if (!m) return d;
+                return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+            }).join(', ');
+        }
+        function fmtWhen(ts) {
+            if (!ts) return '';
+            try {
+                const d = ts.toDate ? ts.toDate() : new Date(ts);
+                return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            } catch (e) { return ''; }
+        }
+
+        // ── Evidence behind Fleet / Housekeeping, from the auto-fill on bonus-deduction.html.
+        // Only dates actually submitted are shown; each one is labelled with where it came from. ──
+        const dayOf = d => { const m = /^\d{4}-\d{2}-(\d{2})$/.exec(d || ''); return m ? String(Number(m[1])) : d; };
+        function fleetEvidence(sub) {
+            const dates = (sub.fleetDates || []).slice().sort();
+            // Submissions saved before the auto-fill existed carry no source data — don't guess.
+            if (!dates.length || !Array.isArray(sub.vehicleCheckMissedDates)) return '';
+            const vc = new Set(sub.vehicleCheckMissedDates);
+            const missed = dates.filter(d => vc.has(d)), other = dates.filter(d => !vc.has(d));
+            const lines = [];
+            if (missed.length) lines.push(`<div><span class="ev-tag">🚐 Missed vehicle check</span> ${missed.map(dayOf).join(', ')}</div>`);
+            if (other.length) lines.push(`<div><span class="ev-tag">✍ Added manually</span> ${other.map(dayOf).join(', ')} <span style="color:var(--text-dim)">(e.g. speeding)</span></div>`);
+            return `<div class="rc-evidence">${lines.join('')}</div>`;
+        }
+        function housekeepingEvidence(sub) {
+            const dates = (sub.housekeepingDates || []).slice().sort();
+            if (!dates.length || !Array.isArray(sub.vanTimesFlagged)) return '';
+            const van = {};
+            (sub.vanTimesFlagged || []).forEach(x => { if (x && x.date) van[x.date] = x; });
+            const late = [], early = [], other = [];
+            dates.forEach(d => {
+                const v = van[d];
+                if (!v) { other.push(dayOf(d)); return; }
+                if (v.lateStart) late.push(`${dayOf(d)} (${v.lateStart})`);
+                if (v.earlyFinish) early.push(`${dayOf(d)} (${v.earlyFinish})`);
+            });
+            const lines = [];
+            if (late.length) lines.push(`<div><span class="ev-tag">⏰ Late start</span> ${late.join(', ')}</div>`);
+            if (early.length) lines.push(`<div><span class="ev-tag">🏠 Home before 16:30</span> ${early.join(', ')}</div>`);
+            if (other.length) lines.push(`<div><span class="ev-tag">✍ Added manually</span> ${other.join(', ')} <span style="color:var(--text-dim)">(e.g. refused work)</span></div>`);
+            return `<div class="rc-evidence">${lines.join('')}</div>`;
+        }
+
+        // Job refusals recorded under Housekeeping on bonus-deduction.html (date, job number, reason).
+        const escHtml = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        function refusalEvidence(refusals) {
+            const list = (Array.isArray(refusals) ? refusals : []).filter(x => x && (x.date || x.jobNumber || x.reason))
+                .slice().sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+            if (!list.length) return '';
+            const lines = list.map(x => `<div><span class="ev-tag">🚫 Job refusal</span> ${/^\d{4}-\d{2}-\d{2}$/.test(x.date || '') ? shortDate(x.date) : escHtml(x.date || '')} · Job ${escHtml(x.jobNumber || '—')} — ${escHtml(x.reason || 'no reason given')}</div>`);
+            return `<div class="rc-evidence">${lines.join('')}</div>`;
+        }
+
+        // ── Row definitions: what CAN be reviewed for one engineer, given their computed context + submission.
+        // `bonusInfo` reflects the FTM's current abort confirm/overturn choices for this engineer. ──
+        // D-1 call % entered on bonus-deduction.html when Customer Service is ticked.
+        function d1PctEvidence(v) {
+            if (v === null || v === undefined || v === '' || isNaN(Number(v))) return '';
+            return `<div class="rc-evidence"><div><span class="ev-tag">📞 D-1 calls made</span> <b>${fmtPct(Number(v))}%</b></div></div>`;
+        }
+
+        function buildRowDefs(ctx, submission, bonusInfo) {
+            const rows = [];
+            const bi = bonusInfo || computeBonusCompletion(ctx, {});
+            const anyDeduct = bi.months.some(mo => mo.deductPct > 0 || mo.rawDeductPct > 0);
+            if (anyDeduct) {
+                const lines = bi.months.filter(mo => mo.jobs > 0).map(mo => {
+                    const upTo = mo.throughDate.endsWith('-31') ? '' : ` (to ${parseIso(mo.throughDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })})`;
+                    const added = mo.priorOverturned + mo.overturnedThisWeek;
+                    return `<div><b>${monthName(mo.month)} to date${upTo}:</b> ` +
+                        (added > 0 ? `<b style="color:var(--purple)">${fmtPct(mo.bonusRate)}%</b> for bonus (raw ${fmtPct(mo.rawRate)}%, +${added} overturned abort job(s)${mo.priorOverturned ? `, ${mo.priorOverturned} from earlier weeks` : ''})`
+                                   : `${fmtPct(mo.rawRate)}%`) +
+                        (mo.deductPct > 0 ? ` — below target, currently <span style="color:var(--amber)">−${fmtPct(mo.deductPct)}%</span> for the month` : ' — target met, no deduction') + `</div>`;
+                });
+                rows.push({ key: 'completion', label: 'Completion Rate (monthly)', pct: bi.primary.deductPct, fixed: true, monthly: true,
+                    detail: lines.join('') + `<div style="color:var(--text-dim);font-size:0.96rem;margin-top:2px;">Applied once to the month's bonus from the full month's figures — not part of this week's total.</div>` });
+            }
+            // Attendance — one row per day, so each Sick / AAUP / AWOL day can be accepted or removed on its own.
+            ctx.attendanceInstances.slice().sort((a, b) => a.date.localeCompare(b.date)).forEach(a => {
+                rows.push({ key: `attendance_${a.date}`, attDate: a.date, label: `Attendance — ${a.code}`, pct: 5,
+                    detail: parseIso(a.date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' }) });
+            });
+            if (submission) {
+                // Customer Service is a monthly flag: shown against the month, applied once to the month's
+                // bonus in the final review, and not added to this week's total.
+                if (submission.customerService) rows.push({ key: 'customerService', label: `Customer Service — ${monthName(bi.months[0].month)} (monthly)`, pct: 5, monthly: true,
+                    detail: 'Persistent failure to make D-1 calls, and/or an upheld customer complaint.' + d1PctEvidence(submission.customerServiceD1Pct) +
+                        `<div style="color:var(--text-dim);font-size:0.96rem;margin-top:2px;">Applied once to the month's bonus in the final review — not part of this week's total.</div>` });
+                if (submission.fleet) rows.push({ key: 'fleet', label: 'Fleet', pct: 5,
+                    detail: `Failed vehicle check and/or speeding incident${submission.fleetDates?.length ? ' — ' + fmtDateList(submission.fleetDates) : ''}` + fleetEvidence(submission) });
+                if (submission.housekeeping) rows.push({ key: 'housekeeping', label: 'Housekeeping', pct: 5,
+                    detail: `Late start, early finish and/or refused work${submission.housekeepingDates?.length ? ' — ' + fmtDateList(submission.housekeepingDates) : ''}${submission.jobRefusals?.length ? ` — ${submission.jobRefusals.length} job refusal${submission.jobRefusals.length === 1 ? '' : 's'} (below)` : ''}` + housekeepingEvidence(submission) + refusalEvidence(submission.jobRefusals) });
+                if (submission.complianceCat1) rows.push({ key: 'complianceCat1', label: 'Compliance — Cat 1', pct: 20, detail: 'Any Cat 1 failure recorded this month.' });
+                if (submission.complianceCat2) rows.push({ key: 'complianceCat2', label: 'Compliance — Cat 2 (2+)', pct: 10, detail: '2 or more Cat 2 failures recorded this month.' });
+                if (submission.complianceCat3) rows.push({ key: 'complianceCat3', label: 'Compliance — Cat 3 (5+)', pct: 10, detail: '5 or more Cat 3 failures recorded this month.' });
+            }
+            return rows;
+        }
+
+        function computeTotal(rowDefs, accepted) {
+            let compliancePct = 0, total = 0;
+            rowDefs.forEach(r => {
+                if (!accepted[r.key] || r.monthly) return;
+                if (r.key.startsWith('compliance')) compliancePct += r.pct;
+                else total += r.pct;
+            });
+            total += Math.min(compliancePct, 20);
+            return Math.min(total, 100);
+        }
+
+        // ── Fetch + group attendance/performance/aborts for one engineer, filtered to the given month ──
+        // ── Splitting aborts into one row per job ──
+        // Only the main Reason (the abort category) is split: "No Access x2" → two "No Access" rows;
+        // "No access, DNO issue" → "No access" + "DNO issue". Reason 1 / Reason 2 are explanations and are
+        // never split — Reason 1 goes with the first category, Reason 2 with the second. (When the Reason is
+        // a single category repeated, e.g. "No Access x2", Reason 1 and 2 go with job 1 and job 2.)
+        // If the record's job count is higher than the categories listed, the last category repeats.
+        function parseAbortCategories(text) {
+            const out = [];
+            String(text || '').split(/[,;]/).map(t => t.trim()).filter(Boolean).forEach((part, catIdx) => {
+                let m = /^(.*?)\s*[x×]\s*(\d+)\s*$/i.exec(part), label = part, n = 1;
+                if (m && m[1]) { label = m[1].trim(); n = Number(m[2]) || 1; }
+                else if ((m = /^(\d+)\s*[x×]\s*(.+)$/i.exec(part))) { label = m[2].trim(); n = Number(m[1]) || 1; }
+                for (let i = 0; i < Math.min(n, 50); i++) out.push({ label, catIdx });
+            });
+            return out;
+        }
+        function splitAbort(a) {
+            let units = parseAbortCategories(a.reason);
+            if (!units.length) units = [{ label: a.reason || 'Abort', catIdx: 0 }];
+            const n = units.length, total = n; // one row per job named in the Reason — the stored "total" is ignored
+            const explanations = [a.reason1, a.reason2];
+            const multiCategory = new Set(units.map(u => u.catIdx)).size > 1;
+            const explain = (u, i) => (multiCategory ? explanations[u.catIdx] : explanations[i]) || '';
+            if (n <= 1) return [{ ...a, total, parentKey: a.key, label: units[0].label, explanation: [a.reason1, a.reason2].filter(Boolean).join(' · ') }];
+            while (units.length < n) units.push(units[units.length - 1]);
+            return units.map((u, i) => ({ ...a, key: `${a.key}#${i + 1}`, parentKey: a.key, total: 1, label: u.label,
+                explanation: explain(u, i), part: i + 1, parts: n }));
+        }
+
+        // A week that crosses two months is reviewed in two parts — one per month.
+        const weekSpansMonths = wk => wk.slice(0, 7) !== weekEndOf(wk).slice(0, 7);
+        const reviewDocId = (engId, wk, month) => weekSpansMonths(wk) ? `${engId}_${wk}_${month}` : `${engId}_${wk}`;
+        // Administrator's weekly submission cut down to the selected month: dated items keep only their dates
+        // in the month; undated flags (Customer Service, Compliance) belong to the month that holds
+        // most of the week — the same rule the final review and the engineer portal use.
+        function submissionForMonth(sub, wk, month) {
+            if (!sub || !weekSpansMonths(wk)) return sub;
+            const inM = d => typeof d === 'string' && d.startsWith(month);
+            const ownsUndated = primaryMonthOf(wk) === month;
+            const out = { ...sub };
+            const fd = (sub.fleetDates || []).filter(inM), hd = (sub.housekeepingDates || []).filter(inM);
+            out.fleet = !!sub.fleet && ((sub.fleetDates || []).length ? fd.length > 0 : ownsUndated);
+            out.fleetDates = out.fleet ? fd : [];
+            // Job refusals are dated too: they count toward the month their date falls in.
+            const allRefusals = Array.isArray(sub.jobRefusals) ? sub.jobRefusals : [];
+            const refM = allRefusals.filter(x => x && inM(x.date));
+            out.housekeeping = !!sub.housekeeping && (((sub.housekeepingDates || []).length || allRefusals.length) ? (hd.length > 0 || refM.length > 0) : ownsUndated);
+            out.housekeepingDates = out.housekeeping ? hd : [];
+            out.jobRefusals = out.housekeeping ? refM : [];
+            ['customerService', 'complianceCat1', 'complianceCat2', 'complianceCat3'].forEach(k => { out[k] = !!sub[k] && ownsUndated; });
+            if (Array.isArray(sub.vehicleCheckMissedDates)) out.vehicleCheckMissedDates = sub.vehicleCheckMissedDates.filter(inM);
+            if (Array.isArray(sub.vanTimesFlagged)) out.vanTimesFlagged = sub.vanTimesFlagged.filter(x => x && inM(x.date));
+            const any = out.fleet || out.housekeeping || out.customerService || out.complianceCat1 || out.complianceCat2 || out.complianceCat3;
+            return any ? out : null;
+        }
+
+        // "Only 1 Oct – 4 Oct counted here — 28 Sept – 30 Sept is reviewed under September 2026."
+        function splitNote(r) {
+            if (!weekSpansMonths(r.wk)) return '';
+            const mStart = r.month + '-01', mEnd = monthEndOf(r.month), wEnd = weekEndOf(r.wk);
+            const from = r.wk > mStart ? r.wk : mStart, to = wEnd < mEnd ? wEnd : mEnd;
+            const otherFrom = from === r.wk ? addDays(to, 1) : r.wk, otherTo = from === r.wk ? wEnd : addDays(from, -1);
+            return `<div class="rc-split-note">Only ${shortDate(from)} – ${shortDate(to)} counted here — ${shortDate(otherFrom)} – ${shortDate(otherTo)} is reviewed under ${formatMonth(otherFrom.slice(0, 7))}.</div>`;
+        }
+
+        // ── Abort job counts ──
+        // The aborts upload's column D is headed "Total" but holds the time length, so the stored
+        // `total` field is ignored. Jobs per abort record come from its Reason instead: "No Access x2" = 2,
+        // "No access, DNO issue" = 2, anything else = 1 (the same way the FTL work screen counts them).
+        function abortCatCount(reason) {
+            let n = 0;
+            String(reason || '').split(/[,;]/).map(t => t.trim()).filter(Boolean).forEach(part => {
+                const m = /^(.*?)\s*[x×]\s*(\d+)\s*$/i.exec(part) || /^(\d+)\s*[x×]\s*(.+)$/i.exec(part);
+                const k = m ? Number(/^\d+$/.test(m[2]) ? m[2] : m[1]) || 1 : 1;
+                n += Math.min(k, 50);
+            });
+            return Math.max(n, 1);
+        }
+        // Job count for an abort saved in an earlier review. Older reviews could split one abort into
+        // extra parts using the stored "Total"; parts beyond what the Reason supports are dropped.
+        function storedAbortJobs(a) {
+            if (!a) return 0;
+            if (a.part) return a.part <= abortCatCount(a.reason) ? 1 : 0;
+            return Math.min(Number(a.total) || 1, abortCatCount(a.reason));
+        }
+
+        async function fetchEngineerSnaps(engineer) {
+            const engineerName = engineer.engineerName;
+            return Promise.all([
+                getDocs(query(collection(db, "attendance"), where("engineerName", "==", engineerName))),
+                getDocs(query(collection(db, "performance"), where("engineerName", "==", engineerName))),
+                getDocs(query(collection(db, "performance - Bravo"), where("engineerName", "==", engineerName))),
+                getDocs(query(collection(db, "aborts"), where("engineer", "==", engineerName))),
+                getDocs(query(collection(db, "aborts bravo"), where("engineer", "==", engineerName))),
+                getDocs(query(collection(db, REVIEWED), where("engineerId", "==", engineer.id))),
+            ]);
+        }
+        // Everything is limited to the SELECTED MONTH: when a week crosses two months, only the days
+        // inside the selected month are shown and reviewed here (the other days belong to the other
+        // month's view, and are reviewed and saved there as a separate part of the week).
+        function fetchEngineerMonthContext(engineer, wk, snaps, month) {
+            const [attSnap, perfSnap, bravoSnap, abortsSnap, abortsBravoSnap, prevRevSnap] = snaps;
+            const weekEnd = weekEndOf(wk);
+            const inScope = date => inWeek(date, wk) && String(date).startsWith(month);
+
+            // Attendance instances — this week only (each is −5% on that month's bonus).
+            const attendanceInstances = [];
+            attSnap.forEach(d => {
+                const data = d.data();
+                if (inScope(data.date) && ATT_DEDUCT_CODES.includes(data.attendance)) {
+                    attendanceInstances.push({ date: data.date, code: data.attendance });
+                }
+            });
+
+            // Completion — MONTH-TO-DATE (1st of the month to the end of this week) for every month
+            // the week touches, because the completion deduction is a monthly figure.
+            const months = [{ month, throughDate: weekEnd.slice(0, 7) === month ? weekEnd : `${month}-31`, jobs: 0, completed: 0, priorOverturned: 0 }];
+            const sumPerf = d => {
+                const data = d.data();
+                const mo = months.find(x => (data.date || '').startsWith(x.month) && data.date <= x.throughDate);
+                if (mo) { mo.jobs += Number(data.jobs) || 0; mo.completed += Number(data.completed) || 0; }
+            };
+            perfSnap.forEach(sumPerf);
+            bravoSnap.forEach(sumPerf);
+
+            // Aborts overturned in OTHER weeks' reviews still count towards the month's bonus rate
+            // (each abort counted once, even if an older whole-week review also lists it).
+            const seenAborts = new Set();
+            prevRevSnap.forEach(d => {
+                const data = d.data();
+                if (data.weekStart === wk || !Array.isArray(data.abortsDetail)) return;
+                data.abortsDetail.forEach(a => {
+                    if (!a || !a.overturned || !a.date || inWeek(a.date, wk) || seenAborts.has(a.key)) return;
+                    seenAborts.add(a.key);
+                    const mo = months.find(x => a.date.startsWith(x.month) && a.date <= x.throughDate);
+                    if (mo) mo.priorOverturned += storedAbortJobs(a);
+                });
+            });
+            months.forEach(mo => {
+                mo.rawRate = mo.jobs > 0 ? (mo.completed / mo.jobs) * 100 : null;
+                mo.rawDeductPct = completionDeductPct(mo.rawRate);
+            });
+
+            // Aborts — this week only. Confirm (warranted) or overturn; the raw abort collections are
+            // never written to from this page.
+            const aborts = [];
+            const collectAborts = (snap, source) => {
+                snap.forEach(d => {
+                    const data = d.data();
+                    if (inScope(data.date)) {
+                        aborts.push({
+                            key: `${source}_${d.id}`, source,
+                            date: data.date, reason: data.reason || '', reason1: data.reason1 || '',
+                            reason2: data.reason2 || '', total: abortCatCount(data.reason), // stored "total" ignored — see abortCatCount
+                            teamLeader: data.teamLeader || '',
+                        });
+                    }
+                });
+            };
+            collectAborts(abortsSnap, 'aborts');
+            collectAborts(abortsBravoSnap, 'aborts bravo');
+            aborts.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+            const splitAborts = aborts.flatMap(splitAbort);
+
+            const primary = months[0];
+            return {
+                months, primaryMonth: primary.month,
+                jobs: primary.jobs, completed: primary.completed, completionRate: primary.rawRate,
+                // Aborts are worth reviewing if ANY month the week touches is under target.
+                completionDeductPct: Math.max(...months.map(x => x.rawDeductPct)),
+                attendanceInstances,
+                aborts: splitAborts,
+            };
+        }
+
+        // ── Bonus-only completion rate: any abort the FTM overturns is added back into
+        // "completed" for THIS calculation only, purely for the completion-rate deduction
+        // tier. It never touches jobs/completed on the performance collection, never touches
+        // the raw aborts collections, and never affects anything shown outside this pipeline. ──
+        function computeBonusCompletion(ctx, abortAccepted) {
+            let overturnedTotal = 0;
+            const months = ctx.months.map(mo => {
+                let thisWeek = 0;
+                ctx.aborts.forEach(a => { if (abortAccepted[a.key] === false && (a.date || '').startsWith(mo.month)) thisWeek += a.total; });
+                overturnedTotal += thisWeek;
+                const added = mo.priorOverturned + thisWeek;
+                const bonusRate = mo.jobs > 0 ? Math.min(100, ((mo.completed + added) / mo.jobs) * 100) : null;
+                return { ...mo, overturnedThisWeek: thisWeek, bonusRate, deductPct: completionDeductPct(bonusRate) };
+            });
+            const primary = months.find(x => x.month === ctx.primaryMonth) || months[0];
+            return { months, bonusRate: primary.bonusRate, overturnedTotal, primary };
+        }
+
+        // ── "Needs review" detection ──────────────────────────────────────────────────
+        // bonus-deduction.html re-saves the WHOLE month every time (delete + re-add), so every
+        // engineer gets a fresh submittedAt timestamp even when nothing about them changed — a
+        // timestamp comparison would reopen everyone's card on every single save. Instead we diff
+        // the actual submitted values against what the FTM's last review captured.
+        function datesEqual(a, b) {
+            const sa = [...(a || [])].sort(), sb = [...(b || [])].sort();
+            if (sa.length !== sb.length) return false;
+            return sa.every((v, i) => v === sb[i]);
+        }
+        function submissionChanged(submission, reviewed) {
+            const s = submission || {};
+            const flagPairs = [
+                ['customerService', 'customerServiceFlagged'],
+                ['fleet', 'fleetFlagged'],
+                ['housekeeping', 'housekeepingFlagged'],
+                ['complianceCat1', 'complianceCat1Flagged'],
+                ['complianceCat2', 'complianceCat2Flagged'],
+                ['complianceCat3', 'complianceCat3Flagged'],
+            ];
+            for (const [subKey, revKey] of flagPairs) {
+                if (!!s[subKey] !== !!reviewed[revKey]) return true;
+            }
+            const d1 = v => (v === null || v === undefined || v === '') ? null : Number(v);
+            if (s.customerService && reviewed.customerServiceFlagged && d1(s.customerServiceD1Pct) !== d1(reviewed.customerServiceD1Pct)) return true;
+            if (!datesEqual(s.fleet ? s.fleetDates : [], reviewed.fleetFlagged ? reviewed.fleetDates : [])) return true;
+            if (!datesEqual(s.housekeeping ? s.housekeepingDates : [], reviewed.housekeepingFlagged ? reviewed.housekeepingDates : [])) return true;
+            // Job refusals (date | job | reason) — a new, removed or edited refusal reopens the week.
+            const refKey = list => (Array.isArray(list) ? list : []).map(x => `${x.date}|${x.jobNumber}|${x.reason}`).sort().join('\n');
+            if (refKey(s.housekeeping ? s.jobRefusals : []) !== refKey(reviewed.housekeepingFlagged ? reviewed.jobRefusals : [])) return true;
+            return false;
+        }
+        // True if any CURRENT abort (this month, for this engineer) isn't one the FTM's last
+        // review already accounted for — i.e. a genuinely new abort has appeared since then.
+        function hasNewAbort(currentAborts, reviewedAbortsDetail) {
+            const known = new Set((reviewedAbortsDetail || []).flatMap(a => [a.key, a.parentKey]).filter(Boolean));
+            return (currentAborts || []).some(a => !known.has(a.key) && !known.has(a.parentKey));
+        }
+        // An engineer only needs to reappear in the FTM's queue if they've never been reviewed,
+        // or something new has shown up since the last review: an edited/new Bonus Deductions
+        // submission, or a new abort. Otherwise — even though the completion/attendance deduction
+        // itself may still be "live" — the FTM already made a decision on it and it hasn't changed.
+        function needsReview(ctx, submission, reviewed) {
+            if (!reviewed) return true;
+            if (submissionChanged(submission, reviewed)) return true;
+            if (hasNewAbort(ctx.aborts, reviewed.abortsDetail)) return true;
+            return false;
+        }
+
+        // ── Load engineers + populate team filter ──
+        async function loadEngineers() {
+            const snap = await getDocs(collection(db, "engineers"));
+            engineers = [];
+            snap.forEach(d => engineers.push({ id: d.id, ...d.data() }));
+            engineers = engineers.filter(e => !isExcludedEngineer(e));
+
+            const teams = [...new Set(engineers.map(e => e.teamLeader).filter(Boolean))].sort();
+            const sel = document.getElementById('teamFilter');
+            teams.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t; opt.textContent = t;
+                sel.appendChild(opt);
+            });
+        }
+
+        // ── Build the list of engineers who have something to review this month ──
+        let loadToken = 0;
+        async function loadMonth(month) {
+            const token = ++loadToken;
+            document.getElementById('loadingDiv').style.display = 'block';
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('cardsContainer').style.display = 'none';
+            document.getElementById('cardsContainer').innerHTML = '';
+            document.getElementById('monthSummary').classList.remove('show');
+
+            try {
+                const weeks = weeksOfMonth(month);
+                if (!weeks.length) { engineerRows = []; renderCards(); return; }
+                const range = [where("weekStart", ">=", weeks[0]), where("weekStart", "<=", weeks[weeks.length - 1])];
+                const [subSnap, revSnap] = await Promise.all([
+                    getDocs(query(collection(db, SUBMISSIONS), ...range)),
+                    getDocs(query(collection(db, REVIEWED), ...range)),
+                ]);
+                const submissionOf = {}, reviewedOf = {};
+                subSnap.forEach(d => { const x = d.data(); if (x.engineerId && x.weekStart) submissionOf[`${x.engineerId}_${x.weekStart}`] = x; });
+                // For a split week, only the review saved for THIS month's part counts here; an older
+                // whole-week review of a split week is ignored (the week is re-reviewed per month).
+                revSnap.forEach(d => {
+                    const x = d.data();
+                    if (!x.engineerId || !x.weekStart) return;
+                    if (weekSpansMonths(x.weekStart)) { if (x.weekSpansMonths && x.month === month) reviewedOf[`${x.engineerId}_${x.weekStart}`] = x; }
+                    else reviewedOf[`${x.engineerId}_${x.weekStart}`] = x;
+                });
+
+                const rows = [];
+                for (const eng of engineers) {
+                    const snaps = await fetchEngineerSnaps(eng);
+                    if (token !== loadToken) return;
+                    for (const wk of weeks) {
+                        const key = `${eng.id}_${wk}`;
+                        const ctx = fetchEngineerMonthContext(eng, wk, snaps, month);
+                        const submission = submissionForMonth(submissionOf[key] || null, wk, month);
+                        const reviewed = reviewedOf[key] || null;
+                        // A week is shown if there's anything to review (Administrator's flags, attendance, or
+                        // aborts while under the completion target) or it has already been reviewed.
+                        const hasItems = !!submission || ctx.attendanceInstances.length > 0 || (ctx.aborts.length > 0 && ctx.completionDeductPct > 0);
+                        if (!hasItems && !reviewed) continue;
+                        rows.push({ key, wk, month, engineer: eng, ctx, submission, reviewed,
+                            due: wk === LAST_MONDAY, status: needsReview(ctx, submission, reviewed) ? 'todo' : 'done' });
+                    }
+                }
+                // Engineers with something due last week first, then alphabetical; weeks in date order.
+                const dueEng = new Set(rows.filter(r => r.due && r.status === 'todo').map(r => r.engineer.id));
+                rows.sort((a, b) => (dueEng.has(b.engineer.id) - dueEng.has(a.engineer.id)) ||
+                    a.engineer.engineerName.localeCompare(b.engineer.engineerName) || a.wk.localeCompare(b.wk));
+                engineerRows = rows;
+                renderCards();
+            } catch (err) {
+                console.error(err);
+                showMessage('Error loading month data: ' + err.message, 'error');
+            } finally {
+                if (token === loadToken) document.getElementById('loadingDiv').style.display = 'none';
+            }
+        }
+
+        function renderCards() {
+            const teamFilter = document.getElementById('teamFilter').value;
+            const container = document.getElementById('cardsContainer');
+            container.innerHTML = '';
+
+            const showFilter = document.getElementById('showFilter').value;
+            // Weeks the FTM has already submitted (and that haven't changed since) are left out entirely.
+            const visible = engineerRows.filter(r => r.status === 'todo' && (!teamFilter || r.engineer.teamLeader === teamFilter) &&
+                (showFilter !== 'due' || r.due));
+            renderSummary(document.getElementById('dataMonth').value);
+            const groups = {};
+
+            if (!visible.length) {
+                const anyDone = engineerRows.some(r => r.status === 'done' && (!teamFilter || r.engineer.teamLeader === teamFilter));
+                document.getElementById('emptyStateDetail').textContent = anyDone
+                    ? (showFilter === 'due' ? 'Everything for last week has been reviewed.' : 'Every engineer week in this month has been reviewed.')
+                    : 'No engineer has anything to review for this month.';
+                document.getElementById('emptyState').style.display = 'block';
+                document.getElementById('cardsContainer').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('cardsContainer').style.display = 'flex';
+
+            visible.forEach(r => {
+                // Prefill abort decisions from the previous review, if any; default Warranted (true).
+                r._abortAccepted = {};
+                const prevAborts = (r.reviewed && Array.isArray(r.reviewed.abortsDetail)) ? r.reviewed.abortsDetail : [];
+                r.ctx.aborts.forEach(a => {
+                    const prev = prevAborts.find(p => p.key === a.key) || prevAborts.find(p => p.key === a.parentKey)
+                        || prevAborts.find(p => p.parentKey && p.parentKey === (a.parentKey || a.key)); // older review split this abort differently
+                    r._abortAccepted[a.key] = prev ? !prev.overturned : true;
+                });
+
+                const bonusInfo = computeBonusCompletion(r.ctx, r._abortAccepted);
+                r._bonusInfo = bonusInfo;
+                const rowDefs = buildRowDefs(r.ctx, r.submission, bonusInfo);
+                r._rowDefs = rowDefs;
+                r._accepted = {};
+                rowDefs.forEach(rd => {
+                    // Fixed rows (Completion Rate) are always counted — no Accept/Remove discretion.
+                    // Everything else defaults to whatever the previous review said, else Accept.
+                    let prev = r.reviewed ? r.reviewed[rd.key + 'Accepted'] : undefined;
+                    if (rd.attDate && r.reviewed) {
+                        const hit = (r.reviewed.attendanceDetail || []).find(x => x && x.date === rd.attDate);
+                        prev = (hit && hit.accepted !== undefined) ? hit.accepted : r.reviewed.attendanceAccepted;
+                    }
+                    r._accepted[rd.key] = rd.fixed ? true : (prev === undefined ? true : !!prev);
+                });
+
+                const card = document.createElement('div');
+                card.className = 'review-card' + (r.due ? ' due' : '') + (r.status === 'done' ? ' done' : '') + (r.status === 'done' && !r.due ? ' collapsed' : '');
+                card.dataset.rowKey = r.key;
+
+                // Aborts are only relevant to review when the raw completion rate is actually
+                // under 90% (i.e. a completion deduction tier applies) — gated on the RAW rate,
+                // not the bonus-adjusted one, so the section can't disappear on you mid-review as
+                // you overturn things. Below 90% there's no deduction to affect either way.
+                const showAborts = r.ctx.completionDeductPct > 0;
+
+                const contextBits = [];
+                contextBits.push(`<span>Completion: <b id="ctxCompletion_${r.key}"></b></span>`);
+                contextBits.push(`<span>Attendance: <b>${r.ctx.attendanceInstances.length ? r.ctx.attendanceInstances.length + ' flagged instance(s)' : 'clear'}</b></span>`);
+                if (showAborts) contextBits.push(`<span>Aborts: <b>${r.ctx.aborts.length ? r.ctx.aborts.length + ' this week' : 'none'}</b></span>`);
+
+                const prevBadge = r.reviewed
+                    ? `<div class="rc-prev-badge">Previously reviewed${r.reviewed.reviewedBy ? ' by ' + r.reviewed.reviewedBy : ''}${r.reviewed.reviewedAt ? ' · ' + fmtWhen(r.reviewed.reviewedAt) : ''}</div>`
+                    : '';
+
+                const abortsSectionHTML = showAborts ? `
+                    <div class="rc-aborts-section">
+                        <div class="rc-aborts-head">
+                            <span class="rc-aborts-title">Aborts This Week</span>
+                            <span class="rc-aborts-note">Confirm each abort as warranted — it counts against completion as normal — or overturn it, which adds the job back into the month's completion rate for bonus purposes only. It never changes the raw abort record or the real completion/aborted figures shown elsewhere.</span>
+                        </div>
+                        <div class="rc-bonus-calc" id="bonusCalc_${r.key}"></div>
+                        <div class="rc-aborts" id="aborts_${r.key}"></div>
+                    </div>` : '';
+
+                card.innerHTML = `
+                    <div class="rc-head">
+                        <div>
+                            <div class="rc-week"><span class="rc-chev">${r.status === 'done' && !r.due ? '▸' : '▾'}</span>w/c ${shortDate(r.wk)} <span style="font-weight:400;color:var(--text-dim);font-size:1.06rem;">(${shortDate(r.wk)} – ${shortDate(weekEndOf(r.wk))})</span>
+                                ${r.due ? '<span class="wk-badge due">Due — last week</span>' : ''}
+                                ${r.status === 'done' ? '<span class="wk-badge done">✓ Reviewed</span>' : (r.reviewed ? '<span class="wk-badge todo">Changed since review</span>' : '<span class="wk-badge todo">Not yet reviewed</span>')}</div>
+                            ${splitNote(r)}
+                            ${prevBadge}
+                        </div>
+                        <div>
+                            <div class="rc-total-label">This Week's Flags</div>
+                            <span class="rc-total-pill" id="total_${r.key}">0%</span>
+                        </div>
+                    </div>
+                    <div class="rc-context">${contextBits.join('')}</div>
+                    <div class="rc-rows" id="rows_${r.key}"></div>
+                    ${abortsSectionHTML}
+                    <div class="rc-footer">
+                        <span class="rc-status" id="status_${r.key}"></span>
+                        <button type="button" class="btn-save" data-eng="${r.key}">✓ Submit Review</button>
+                    </div>
+                `;
+                // Engineer group header (built once per engineer) with a chip per week.
+                if (!groups[r.engineer.id]) {
+                    const mine = visible.filter(x => x.engineer.id === r.engineer.id);
+                    const g = document.createElement('div');
+                    g.className = 'eng-group' + (mine.some(x => x.due && x.status === 'todo') ? ' has-due' : '');
+                    g.innerHTML = `<div class="eng-head"><div><div class="rc-name">${r.engineer.engineerName}</div><div class="rc-leader">${r.engineer.teamLeader || ''}</div></div>
+                        <div class="eng-chips">${mine.map(x => `<span class="wk-chip ${x.due && x.status === 'todo' ? 'due' : x.status}" data-chip="${x.key}">${x.status === 'done' ? '✓ ' : x.due ? '● ' : ''}w/c ${shortDate(x.wk)}</span>`).join('')}</div></div>
+                        <div class="eng-body"></div>`;
+                    container.appendChild(g);
+                    groups[r.engineer.id] = g.querySelector('.eng-body');
+                }
+                groups[r.engineer.id].appendChild(card);
+                card.querySelector('.rc-head').addEventListener('click', e => {
+                    if (e.target.closest('button')) return;
+                    card.classList.toggle('collapsed');
+                    card.querySelector('.rc-chev').textContent = card.classList.contains('collapsed') ? '▸' : '▾';
+                });
+
+                const rowsEl = card.querySelector(`#rows_${CSS.escape(r.key)}`);
+                rowDefs.forEach(rd => rowsEl.appendChild(buildRowElement(r.key, rd)));
+
+                if (showAborts) {
+                    const abortsEl = card.querySelector(`#aborts_${CSS.escape(r.key)}`);
+                    if (!r.ctx.aborts.length) {
+                        abortsEl.innerHTML = `<div class="rc-abort-empty">No aborts recorded this week.</div>`;
+                    } else {
+                        r.ctx.aborts.forEach(a => abortsEl.appendChild(buildAbortRowElement(r.key, a)));
+                    }
+                }
+
+                card.querySelector('.btn-save').addEventListener('click', function () { submitEngineerReview(r.key, this); });
+
+                updateCardTotal(r);
+            });
+        }
+
+        // ── One completion/attendance/category row. Every row except Completion Rate gets its
+        // own Accept/Remove listener — Completion Rate is fixed (see buildRowDefs). ──
+        function buildRowElement(engId, rd) {
+            const rowEl = document.createElement('div');
+            rowEl.className = 'rc-row';
+            rowEl.dataset.key = rd.key;
+            const controlHTML = rd.fixed
+                ? `<div class="rc-fixed-note">Monthly — adjust via Aborts below</div>`
+                : `<div class="toggle-pair">
+                    <button type="button" class="toggle-btn accept" data-eng="${engId}" data-key="${rd.key}">Accept</button>
+                    <button type="button" class="toggle-btn remove" data-eng="${engId}" data-key="${rd.key}">Remove</button>
+                </div>`;
+            rowEl.innerHTML = `
+                <div class="rc-row-info">
+                    <div class="rc-row-label">${rd.label} <span class="rc-row-pct${rd.pct > 0 ? '' : ' zero'}">${rd.pct > 0 ? '−' + fmtPct(rd.pct) + '%' : '0%'}</span></div>
+                    <div class="rc-row-detail">${rd.detail}</div>
+                </div>
+                ${controlHTML}
+            `;
+            rowEl.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const r = engineerRows.find(x => x.key === engId);
+                    if (!r) return;
+                    r._accepted[rd.key] = this.classList.contains('accept');
+                    updateCardTotal(r);
+                    const status = document.getElementById(`status_${engId}`);
+                    if (status) { status.textContent = ''; status.className = 'rc-status'; }
+                });
+            });
+            return rowEl;
+        }
+
+        // ── One abort row, with its own Warranted/Overturn listener. Overturning only
+        // recomputes the bonus-purposes completion rate for this review — it never writes
+        // to the aborts collection and never changes the engineer's real stats. ──
+        function buildAbortRowElement(engId, abort) {
+            const rowEl = document.createElement('div');
+            rowEl.className = 'rc-abort-row';
+            rowEl.dataset.key = abort.key;
+            const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(abort.date || '');
+            const dateStr = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : (abort.date || '');
+            // Reason (category) on top; date, team leader and the matching explanation underneath.
+            const detailBits = [dateStr, abort.teamLeader, abort.explanation].filter(Boolean);
+            rowEl.innerHTML = `
+                <div class="rc-abort-info">
+                    <div class="rc-abort-label">${abort.label || abort.reason || 'Abort'} <span class="rc-abort-total">${abort.total} job${abort.total === 1 ? '' : 's'}${abort.parts ? ` · ${abort.part} of ${abort.parts}` : ''}</span></div>
+                    <div class="rc-abort-detail">${detailBits.join(' · ')}</div>
+                </div>
+                <div class="toggle-pair">
+                    <button type="button" class="toggle-btn warranted" data-eng="${engId}" data-key="${abort.key}">Warranted</button>
+                    <button type="button" class="toggle-btn overturn" data-eng="${engId}" data-key="${abort.key}">Overturn</button>
+                </div>
+            `;
+            rowEl.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const r = engineerRows.find(x => x.key === engId);
+                    if (!r) return;
+                    r._abortAccepted[abort.key] = this.classList.contains('warranted');
+                    updateAbortToggles(r);
+                    rebuildCompletionRow(r);
+                    updateCardTotal(r);
+                    const status = document.getElementById(`status_${engId}`);
+                    if (status) { status.textContent = ''; status.className = 'rc-status'; }
+                });
+            });
+            return rowEl;
+        }
+
+        function updateAbortToggles(r) {
+            const card = document.querySelector(`.review-card[data-row-key="${CSS.escape(r.key)}"]`);
+            if (!card) return;
+            r.ctx.aborts.forEach(a => {
+                const row = card.querySelector(`.rc-abort-row[data-key="${CSS.escape(a.key)}"]`);
+                if (!row) return;
+                const warranted = r._abortAccepted[a.key] !== false;
+                row.querySelector('.toggle-btn.warranted').classList.toggle('on', warranted);
+                row.querySelector('.toggle-btn.overturn').classList.toggle('on', !warranted);
+            });
+        }
+
+        // ── Re-derives the bonus-only completion rate from the current abort decisions and
+        // rebuilds just the "Completion Rate" row (it may appear, disappear, or change pct/detail
+        // as aborts are overturned) without touching any other row's accept/remove state. ──
+        function rebuildCompletionRow(r) {
+            const bonusInfo = computeBonusCompletion(r.ctx, r._abortAccepted);
+            r._bonusInfo = bonusInfo;
+            const newDefs = buildRowDefs(r.ctx, r.submission, bonusInfo);
+            const newAccepted = {};
+            newDefs.forEach(rd => {
+                newAccepted[rd.key] = rd.fixed ? true : ((r._accepted[rd.key] !== undefined) ? r._accepted[rd.key] : true);
+            });
+            r._rowDefs = newDefs;
+            r._accepted = newAccepted;
+
+            const rowsEl = document.getElementById(`rows_${r.key}`);
+            if (rowsEl) {
+                rowsEl.innerHTML = '';
+                newDefs.forEach(rd => rowsEl.appendChild(buildRowElement(r.key, rd)));
+            }
+        }
+
+        // Live completion figures: the card's context line and the calc line under Aborts.
+        function updateCompletionDisplay(r) {
+            const bi = r._bonusInfo || computeBonusCompletion(r.ctx, r._abortAccepted || {});
+            const ctxEl = document.getElementById(`ctxCompletion_${r.key}`);
+            if (ctxEl) {
+                const parts = bi.months.filter(mo => mo.jobs > 0).map(mo => {
+                    const added = mo.priorOverturned + mo.overturnedThisWeek;
+                    const label = bi.months.length > 1 ? `${monthName(mo.month).slice(0, 3)} ` : '';
+                    return added > 0
+                        ? `${label}${fmtPct(mo.rawRate)}% → <span class="adj">${fmtPct(mo.bonusRate)}% for bonus</span>`
+                        : `${label}${fmtPct(mo.rawRate)}%`;
+                });
+                ctxEl.innerHTML = parts.length ? parts.join(' · ') + ' <span style="color:var(--text-dim)">month to date</span>' : 'no job data';
+            }
+            const calcEl = document.getElementById(`bonusCalc_${r.key}`);
+            if (calcEl) {
+                calcEl.innerHTML = bi.months.filter(mo => mo.jobs > 0).map(mo => {
+                    return `${monthName(mo.month)} to date for bonus: <b>${mo.completed}</b>` +
+                        (mo.priorOverturned ? ` + <b style="color:var(--purple)">${mo.priorOverturned}</b> overturned earlier` : '') +
+                        (mo.overturnedThisWeek ? ` + <b style="color:var(--purple)">${mo.overturnedThisWeek}</b> overturned this week` : '') +
+                        ` of <b>${mo.jobs}</b> jobs = <b>${fmtPct(mo.bonusRate)}%</b> → ` +
+                        (mo.deductPct > 0 ? `<span class="ded">−${fmtPct(mo.deductPct)}% for the month</span>` : `<span class="ok">no deduction</span>`);
+                }).join('<br>') || 'No job data this month yet.';
+            }
+        }
+
+        function updateCardTotal(r) {
+            updateCompletionDisplay(r);
+            updateAbortToggles(r);
+            const total = computeTotal(r._rowDefs, r._accepted);
+            const pill = document.getElementById(`total_${r.key}`);
+            if (pill) {
+                pill.textContent = total > 0 ? `-${fmtPct(total)}%` : '0%';
+                pill.classList.toggle('active', total > 0);
+            }
+            const card = document.querySelector(`.review-card[data-row-key="${CSS.escape(r.key)}"]`);
+            if (!card) return;
+            r._rowDefs.forEach(rd => {
+                const accepted = r._accepted[rd.key];
+                const acceptBtn = card.querySelector(`.toggle-btn.accept[data-key="${CSS.escape(rd.key)}"]`);
+                const removeBtn = card.querySelector(`.toggle-btn.remove[data-key="${CSS.escape(rd.key)}"]`);
+                if (acceptBtn) acceptBtn.classList.toggle('on', accepted);
+                if (removeBtn) removeBtn.classList.toggle('on', !accepted);
+            });
+        }
+
+        document.getElementById('dataMonth').addEventListener('change', function () { loadMonth(this.value); });
+        document.getElementById('showFilter').addEventListener('change', renderCards);
+        document.getElementById('teamFilter').addEventListener('change', renderCards);
+
+        // ── SUBMIT: writes this ONE engineer's finalized review doc (deterministic id, so
+        // resubmitting simply overwrites their own record for the month — nobody else's). ──
+        async function submitEngineerReview(engineerId, btn) {
+            const r = engineerRows.find(x => x.key === engineerId);
+            if (!r) return;
+            const wk = r.wk;
+            const reviewer = document.getElementById('reviewerName').value.trim();
+            const statusEl = document.getElementById(`status_${engineerId}`);
+
+            btn.disabled = true;
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;margin:0;"></span>';
+
+            try {
+                const bonusInfo = r._bonusInfo || computeBonusCompletion(r.ctx, r._abortAccepted);
+                const bonusRate = bonusInfo.bonusRate;
+                const bonusDeductPct = bonusInfo.primary.deductPct;
+                const record = {
+                    engineerId: r.engineer.id,
+                    engineerName: r.engineer.engineerName,
+                    teamLeader: r.engineer.teamLeader || '',
+                    weekStart: wk,
+                    weekEnd: weekEndOf(wk),
+                    month: r.month,
+                    weekSpansMonths: weekSpansMonths(wk),
+                    // Month-to-date completion for every month this week touches (monthly deduction).
+                    completionByMonth: bonusInfo.months.map(mo => ({
+                        month: mo.month, throughDate: mo.throughDate, jobs: mo.jobs, completed: mo.completed,
+                        rawRate: mo.rawRate, priorOverturned: mo.priorOverturned, overturnedThisWeek: mo.overturnedThisWeek,
+                        bonusRate: mo.bonusRate, deductPct: mo.deductPct,
+                    })),
+                    // Completion / attendance — nominal values are always kept (even if removed)
+                    // so the final review stage can still see what the original figures were.
+                    // `completionRate`/`completionNominalPct` are the BONUS-PURPOSES figures (after
+                    // any overturned aborts are added back) — this is what feeds the deduction tier.
+                    // `completionRateRaw` is preserved unchanged for audit/transparency only.
+                    completionRate: bonusRate,
+                    completionRateRaw: r.ctx.completionRate,
+                    completionJobs: r.ctx.jobs,
+                    completionCompleted: r.ctx.completed,
+                    completionNominalPct: bonusDeductPct,
+                    completionFlagged: bonusDeductPct > 0,
+                    completionAccepted: !!r._accepted.completion,
+                    // Aborts — the FTM's per-abort confirm/overturn decisions. This is the ONLY
+                    // place overturning an abort has any effect: it never touches the "aborts"/
+                    // "aborts bravo" collections themselves, nor the performance collection's
+                    // real completed/aborted figures.
+                    abortsFlagged: r.ctx.aborts.length > 0,
+                    abortsOverturnedTotal: bonusInfo.overturnedTotal,
+                    abortsDetail: r.ctx.aborts.map(a => ({
+                        key: a.key, parentKey: a.parentKey || a.key, label: a.label || a.reason, explanation: a.explanation || '', source: a.source, date: a.date, reason: a.reason,
+                        reason1: a.reason1, reason2: a.reason2, total: a.total, teamLeader: a.teamLeader,
+                        overturned: r._abortAccepted[a.key] === false,
+                    })),
+                    // Attendance — every day kept, each with its own decision.
+                    attendanceInstances: r.ctx.attendanceInstances.length,
+                    attendanceDetail: r.ctx.attendanceInstances.map(a => ({ ...a, accepted: r._accepted[`attendance_${a.date}`] !== false })),
+                    attendanceAcceptedCount: r.ctx.attendanceInstances.filter(a => r._accepted[`attendance_${a.date}`] !== false).length,
+                    attendanceNominalPct: r.ctx.attendanceInstances.filter(a => r._accepted[`attendance_${a.date}`] !== false).length * 5,
+                    attendanceFlagged: r.ctx.attendanceInstances.length > 0,
+                    attendanceAccepted: r.ctx.attendanceInstances.some(a => r._accepted[`attendance_${a.date}`] !== false),
+                    customerServiceFlagged: !!r.submission?.customerService,
+                    customerServiceAccepted: !!(r.submission?.customerService && r._accepted.customerService),
+                    customerServiceD1Pct: r.submission?.customerService ? (r.submission.customerServiceD1Pct ?? null) : null,
+                    fleetFlagged: !!r.submission?.fleet,
+                    fleetDates: r.submission?.fleet ? (r.submission.fleetDates || []) : [],
+                    vehicleCheckMissedDates: r.submission?.vehicleCheckMissedDates || [],
+                    fleetAccepted: !!(r.submission?.fleet && r._accepted.fleet),
+                    housekeepingFlagged: !!r.submission?.housekeeping,
+                    housekeepingDates: r.submission?.housekeeping ? (r.submission.housekeepingDates || []) : [],
+                    jobRefusals: r.submission?.housekeeping ? (r.submission.jobRefusals || []) : [],
+                    vanTimesFlagged: r.submission?.vanTimesFlagged || [],
+                    housekeepingAccepted: !!(r.submission?.housekeeping && r._accepted.housekeeping),
+                    complianceCat1Flagged: !!r.submission?.complianceCat1,
+                    complianceCat1Accepted: !!(r.submission?.complianceCat1 && r._accepted.complianceCat1),
+                    complianceCat2Flagged: !!r.submission?.complianceCat2,
+                    complianceCat2Accepted: !!(r.submission?.complianceCat2 && r._accepted.complianceCat2),
+                    complianceCat3Flagged: !!r.submission?.complianceCat3,
+                    complianceCat3Accepted: !!(r.submission?.complianceCat3 && r._accepted.complianceCat3),
+                    totalDeductPct: computeTotal(r._rowDefs, r._accepted),
+                    reviewedBy: reviewer || null,
+                    reviewedAt: serverTimestamp(),
+                };
+
+                await setDoc(doc(db, REVIEWED, reviewDocId(r.engineer.id, r.wk, r.month)), record);
+
+                r.reviewed = record;
+                r.status = 'done';
+                const cardEl = document.querySelector(`.review-card[data-row-key="${CSS.escape(r.key)}"]`);
+                if (cardEl) {
+                    cardEl.classList.add('done');
+                    const b = cardEl.querySelector('.wk-badge.todo'); if (b) { b.className = 'wk-badge done'; b.textContent = '✓ Reviewed'; }
+                }
+                renderSummary(document.getElementById('dataMonth').value);
+                if (statusEl) { statusEl.textContent = `✓ Submitted${reviewer ? ' by ' + reviewer : ''}`; statusEl.className = 'rc-status success'; }
+                if (cardEl) removeSubmittedCard(r, cardEl);
+            } catch (err) {
+                console.error(err);
+                if (statusEl) { statusEl.textContent = 'Error: ' + err.message; statusEl.className = 'rc-status error'; }
+            } finally {
+                btn.disabled = false; btn.innerHTML = orig;
+            }
+        }
+
+        // A submitted week leaves the FTM's view: show "Submitted" briefly, fade the card out, drop its
+        // week chip, and remove the engineer's group once nothing is left in it. Other cards are left
+        // alone, so decisions in progress elsewhere aren't lost.
+        function removeSubmittedCard(r, cardEl) {
+            setTimeout(() => {
+                cardEl.style.transition = 'opacity .35s ease, transform .35s ease';
+                cardEl.style.opacity = '0'; cardEl.style.transform = 'translateY(-6px)';
+                setTimeout(() => {
+                    const group = cardEl.closest('.eng-group');
+                    cardEl.remove();
+                    if (group) {
+                        group.querySelector(`[data-chip="${CSS.escape(r.key)}"]`)?.remove();
+                        if (!group.querySelector('.review-card')) group.remove();
+                        else group.classList.toggle('has-due', engineerRows.some(x => x.engineer.id === r.engineer.id && x.due && x.status === 'todo'));
+                    }
+                    if (!document.querySelector('#cardsContainer .review-card')) renderCards();
+                }, 360);
+            }, 1200);
+        }
+
+        function showMessage(text, type) {
+            const el = document.getElementById('message');
+            el.textContent = text;
+            el.className = `message ${type} show`;
+            setTimeout(() => { el.className = 'message'; }, 7000);
+        }
+
+        (async function init() {
+            await loadEngineers();
+            await loadMonth(document.getElementById('dataMonth').value);
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<!-- Catalistics: shared settings (storage, targets, links). Must load before the page scripts. -->
+<script src="catalistics-settings.js" onerror="this.remove()"></script>
+<script src="catalistics-config.js"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>On Call Rota · Catalistics</title>
+    <style>
+        :root {
+            --bg: #F2F3F3;
+            --bg2: #FFFFFF;
+            --bg3: #FFFFFF;
+            --border: #E9EBED;
+            --border2: #D5DBDB;
+            --accent: #1D8102; 
+            --accent-dim: color-mix(in srgb, #1D8102 15%, transparent);
+            --text:      #e8echo8;
+            --text2: #545B64;
+            --text3: #4A5568;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: var(--cx-font);
+            background: #F2F3F3;
+            color: var(--text);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .title {
+            font-family: var(--cx-font);
+            font-weight: 800;
+            font-size: 1.8em;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--accent);
+            cursor: pointer;
+            user-select: none; /* Prevents text highlighting when triple-clicking */
+        }
+
+        .btn {
+            background: var(--bg3);
+            border: 1px solid var(--border2);
+            color: var(--text);
+            padding: 8px 16px;
+            font-family: var(--cx-font);
+            font-weight: 600;
+            font-size: 0.9em;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-save {
+            background: var(--accent);
+            color: var(--bg);
+            border-color: var(--accent);
+        }
+        .btn-save:hover:not(:disabled) {
+            background: color-mix(in srgb, var(--accent) 80%, #FFFFFF);
+        }
+        .btn-save:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #editSection {
+            display: none;
+            margin-bottom: 24px;
+            background: var(--bg2);
+            padding: 20px;
+            border: 1px solid var(--border2);
+        }
+
+        .instruction {
+            font-family: var(--cx-font);
+            font-size: 0.75em;
+            color: var(--text2);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            background: var(--bg);
+            border: 1px solid var(--border2);
+            color: var(--text);
+            padding: 12px;
+            font-family: var(--cx-font);
+            font-size: 0.85em;
+            resize: vertical;
+            outline: none;
+            box-sizing: border-box;
+            white-space: pre;
+        }
+        textarea:focus { border-color: var(--accent); }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            color: var(--text2);
+        }
+
+        .cell-week {
+            font-family: var(--cx-font);
+            font-weight: 800;
+            font-size: 1.1em;
+            color: var(--text);
+            background: var(--bg3);
+            text-transform: uppercase;
+        }
+        
+        .cell-date {
+            font-family: var(--cx-font);
+            font-size: 0.85em;
+            color: var(--accent);
+            background: var(--accent-dim);
+            font-weight: 700;
+        }
+
+        .cell-day {
+            font-family: var(--cx-font);
+            font-size: 0.75em;
+            color: var(--text3);
+            text-transform: uppercase;
+            background: var(--bg);
+        }
+
+        .cell-region {
+            font-weight: 700;
+            color: var(--text);
+            background: var(--bg3);
+        }
+
+        .cell-name {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .empty-state {
+            padding: 40px;
+            text-align: center;
+            color: var(--text3);
+            font-family: var(--cx-font);
+            font-size: 0.85em;
+            border: 1px dashed var(--border2);
+        }
+        
+        #loadingMsg {
+            text-align: center;
+            padding: 40px;
+            color: var(--text3);
+            font-family: var(--cx-font);
+            font-size: 0.85em;
+        }
+    </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="catalistics-theme.css">
+<script src="catalistics-shell.js" defer></script>
+</head>
+<body>
+
+    <div class="header">
+        <div class="title" id="rotaTitle">📅 On Call Rota</div>
+    </div>
+
+    <div id="editSection">
+        <div class="instruction">// Paste the cells directly from Excel below, then click Save.</div>
+        <textarea id="tsvInput" placeholder="Paste Excel data here..."></textarea>
+        <div style="margin-top: 16px; text-align: right;">
+            <button class="btn" onclick="hideEdit()" style="margin-right: 8px;">Cancel</button>
+            <button class="btn btn-save" id="saveBtn" onclick="saveRota()">💾 Save Live to Database</button>
+        </div>
+    </div>
+
+    <div id="displaySection">
+        <div id="loadingMsg">// CONNECTING TO DATABASE...</div>
+        <div class="table-responsive" id="tableContainer" style="display:none;">
+            </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Connect to your existing Catalistics Firebase
+        const firebaseConfig = CATALISTICS.firebaseConfig('primary');
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // 1. Fetch live data from Database on load
+        document.addEventListener("DOMContentLoaded", () => {
+            db.collection("portal_settings").doc("oncall_rota").get().then(doc => {
+                document.getElementById('loadingMsg').style.display = 'none';
+                document.getElementById('tableContainer').style.display = 'block';
+                
+                if (doc.exists && doc.data().tsvData) {
+                    renderTable(doc.data().tsvData);
+                    document.getElementById('tsvInput').value = doc.data().tsvData;
+                } else {
+                    document.getElementById('tableContainer').innerHTML = '<div class="empty-state">No rota data found. Admin must paste data.</div>';
+                }
+            }).catch(err => {
+                console.error("Error loading rota:", err);
+                document.getElementById('loadingMsg').innerText = '// ERROR LOADING ROTA.';
+            });
+        });
+
+        // 2. Secret Admin Trigger: Triple-click the title to reveal the edit box
+        let clickCount = 0;
+        document.getElementById('rotaTitle').addEventListener('click', () => {
+            clickCount++;
+            if (clickCount === 3) {
+                document.getElementById('editSection').style.display = 'block';
+                document.getElementById('displaySection').style.display = 'none';
+                clickCount = 0;
+            }
+            setTimeout(() => clickCount = 0, 1000); // Reset clicks if too slow
+        });
+
+        function hideEdit() {
+            document.getElementById('editSection').style.display = 'none';
+            document.getElementById('displaySection').style.display = 'block';
+        }
+
+        // 3. Save directly to Database
+        function saveRota() {
+            const rawData = document.getElementById('tsvInput').value.trim();
+            if (!rawData) {
+                alert("Please paste some data first.");
+                return;
+            }
+            
+            const btn = document.getElementById('saveBtn');
+            btn.innerText = "Saving to Cloud...";
+            btn.disabled = true;
+
+            db.collection("portal_settings").doc("oncall_rota").set({
+                tsvData: rawData,
+                updatedAt: firebase.firestore.Timestamp.now()
+            }, { merge: true }).then(() => {
+                btn.innerText = "💾 Save Live to Database";
+                btn.disabled = false;
+                renderTable(rawData);
+                hideEdit();
+            }).catch(err => {
+                alert("Error saving to database: " + err.message);
+                btn.innerText = "💾 Save Live to Database";
+                btn.disabled = false;
+            });
+        }
+
+        // 4. Convert pasted Excel text into a clean HTML table
+        function renderTable(tsvData) {
+            const rows = tsvData.split('\n');
+            let html = '<table><tbody>';
+
+            rows.forEach(row => {
+                if (!row.trim()) return; 
+
+                const cells = row.split('\t');
+                html += '<tr>';
+                
+                cells.forEach(cell => {
+                    let cellClass = "";
+                    let content = cell.trim();
+
+                    if (content.toLowerCase().startsWith('week ')) {
+                        cellClass = "cell-week";
+                    } else if (content.match(/\d{2} [a-zA-Z]{3} \d{4}/) || content.toLowerCase() === 'bank hol') {
+                        cellClass = "cell-date";
+                    } else if (['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].includes(content.toLowerCase())) {
+                        cellClass = "cell-day";
+                    } else if (['scotland', 'north east'].includes(content.toLowerCase())) {
+                        cellClass = "cell-region";
+                    } else if (content !== "") {
+                        cellClass = "cell-name";
+                    }
+
+                    html += `<td class="${cellClass}">${content}</td>`;
+                });
+                
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            document.getElementById('tableContainer').innerHTML = html;
+        }
+    </script>
+</body>
+</html>

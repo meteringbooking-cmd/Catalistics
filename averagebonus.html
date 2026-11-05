@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<!-- Catalistics: shared settings (storage, targets, links). Must load before the page scripts. -->
+<script src="catalistics-settings.js" onerror="this.remove()"></script>
+<script src="catalistics-config.js"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Average Bonus · Catalistics</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--cx-font);
+            background: #F2F3F3;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: #FFFFFF;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 2em;
+            font-weight: bold;
+            background: none;
+            -webkit-background-clip: border-box;
+            -webkit-text-fill-color: currentColor;
+            background-clip: border-box;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #687078;
+            font-size: 1.1em;
+        }
+
+        .upload-section {
+            margin-bottom: 30px;
+            padding: 30px;
+            background: #F8F9FA;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .month-selector {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .month-selector label {
+            font-weight: 600;
+            color: #333333;
+            font-size: 1.1em;
+        }
+
+        .month-selector select {
+            padding: 12px 20px;
+            font-size: 1em;
+            border: 2px solid #0972D3;
+            border-radius: 4px;
+            background: #FFFFFF;
+            color: #333333;
+            cursor: pointer;
+            min-width: 200px;
+            transition: all 0.3s ease;
+        }
+
+        .month-selector select:hover {
+            border-color: #0972D3;
+        }
+
+        .month-selector select:focus {
+            outline: none;
+            border-color: #0972D3;
+            box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+        }
+
+        .upload-btn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #0972D3 0%, #0972D3 100%);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .upload-btn:hover {
+            transform: none;
+            box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .upload-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #D1ECF1;
+            border: 1px solid #BEE5EB;
+            border-radius: 4px;
+            font-size: 0.95em;
+            color: #0972D3;
+            text-align: left;
+        }
+
+        .upload-info strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .upload-info ul {
+            margin-left: 20px;
+            margin-top: 5px;
+        }
+
+        .filter-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #F8F9FA;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .filter-section label {
+            font-weight: 600;
+            color: #333333;
+        }
+
+        .filter-section select {
+            padding: 10px 15px;
+            font-size: 1em;
+            border: 2px solid #0972D3;
+            border-radius: 4px;
+            background: #FFFFFF;
+            cursor: pointer;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            overflow-x: auto;
+            display: block;
+        }
+
+        .data-table thead {
+            background: #FAFAFA;
+            color: #545B64;
+        }
+
+        .data-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .data-table tbody {
+            display: table;
+            width: 100%;
+        }
+
+        .data-table tbody tr {
+            border-bottom: 1px solid #E0E0E0;
+            transition: background-color 0.2s;
+        }
+
+        .data-table tbody tr:hover {
+            background-color: #F8F9FA;
+        }
+
+        .data-table td {
+            padding: 12px 15px;
+        }
+
+        .month-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: linear-gradient(135deg, #0972D3 0%, #0972D3 100%);
+            color: white;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .message.success {
+            background-color: #D4EDDA;
+            color: #1D8102;
+            border: 1px solid #C3E6CB;
+        }
+
+        .message.error {
+            background-color: #F8D7DA;
+            color: #D13212;
+            border: 1px solid #D13212;
+        }
+
+        .message.warning {
+            background-color: #FFF7E8;
+            color: #8D6605;
+            border: 1px solid #FF9900;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #687078;
+        }
+
+        .stats-box {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #F2F8FD;
+            color: #161E2D;
+            padding: 20px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #0972D3;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .clear-btn {
+            padding: 10px 20px;
+            background: #D13212;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            margin-left: 10px;
+        }
+
+        .clear-btn:hover {
+            background: #D13212;
+        }
+
+        .clear-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .data-table {
+                font-size: 0.85em;
+            }
+
+            .month-selector, .filter-section {
+                flex-direction: column;
+            }
+        }
+    </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="catalistics-theme.css">
+<script src="catalistics-shell.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">Catalistics</div>
+            <div class="subtitle">Average Bonus Management</div>
+        </div>
+
+        <div id="message" class="message"></div>
+
+        <div class="upload-section">
+            <div class="month-selector">
+                <label for="monthSelect">📅 Select Month:</label>
+                <select id="monthSelect">
+                    <option value="">-- Select Month --</option>
+                    <option value="January">January</option>
+                    <option value="February">February</option>
+                    <option value="March">March</option>
+                    <option value="April">April</option>
+                    <option value="May">May</option>
+                    <option value="June">June</option>
+                    <option value="July">July</option>
+                    <option value="August">August</option>
+                    <option value="September">September</option>
+                    <option value="October">October</option>
+                    <option value="November">November</option>
+                    <option value="December">December</option>
+                </select>
+            </div>
+
+            <input type="file" id="fileInput" accept=".xlsx, .xls" onchange="handleFileUpload(event)">
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()" id="uploadBtn">
+                📁 Upload Excel File
+            </button>
+            <button class="clear-btn" onclick="clearAllData()" id="clearBtn" style="display: none;">
+                🗑️ Clear All Data
+            </button>
+            
+            <div class="upload-info">
+                <strong>📋 Upload Instructions:</strong>
+                <ul>
+                    <li><strong>Select a month first</strong> before uploading</li>
+                    <li>Column A should contain <strong>Name</strong></li>
+                    <li>Column I should contain <strong>Full Day</strong> (bonus amount)</li>
+                    <li>Data will be tagged with the selected month</li>
+                    <li>Only .xlsx and .xls files are supported</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="filterSection" class="filter-section" style="display: none;">
+            <label for="filterMonth">🔍 Filter by Month:</label>
+            <select id="filterMonth" onchange="filterByMonth()">
+                <option value="all">All Months</option>
+            </select>
+        </div>
+
+        <div id="statsContainer" style="display: none;">
+            <div class="stats-box">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalRecords">0</div>
+                    <div class="stat-label">Total Records</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avgBonus">£0.00</div>
+                    <div class="stat-label">Average Bonus</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalBonus">£0.00</div>
+                    <div class="stat-label">Total Bonuses</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="loadingDiv" class="loading" style="display: none;">Loading data...</div>
+
+        <div id="tableContainer" style="display: none;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Full Day Bonus</th>
+                        <th>Month</th>
+                    </tr>
+                </thead>
+                <tbody id="dataBody">
+                </tbody>
+            </table>
+        </div>
+
+        <a href="index.html" class="back-link">← Back to Home</a>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs';
+
+        const firebaseConfig = CATALISTICS.firebaseConfig('primary');
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let allData = [];
+
+        // Load existing data on page load
+        loadData();
+
+        async function loadData() {
+            document.getElementById('loadingDiv').style.display = 'block';
+            
+            try {
+                const querySnapshot = await getDocs(collection(db, "Average Bonuses"));
+                
+                allData = [];
+                querySnapshot.forEach((doc) => {
+                    allData.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                if (allData.length > 0) {
+                    populateMonthFilter();
+                    displayData(allData);
+                    updateStats(allData);
+                    document.getElementById('clearBtn').style.display = 'inline-block';
+                    document.getElementById('filterSection').style.display = 'flex';
+                } else {
+                    document.getElementById('loadingDiv').style.display = 'none';
+                }
+            } catch (error) {
+                console.error("Error loading data:", error);
+                showMessage('Error loading data. Please check the console for details.', 'error');
+                document.getElementById('loadingDiv').style.display = 'none';
+            }
+        }
+
+        function populateMonthFilter() {
+            const filterSelect = document.getElementById('filterMonth');
+            const months = [...new Set(allData.map(item => item.month))].filter(m => m).sort();
+            
+            // Clear existing options except "All Months"
+            filterSelect.innerHTML = '<option value="all">All Months</option>';
+            
+            months.forEach(month => {
+                const option = document.createElement('option');
+                option.value = month;
+                option.textContent = month;
+                filterSelect.appendChild(option);
+            });
+        }
+
+        window.filterByMonth = function() {
+            const selectedMonth = document.getElementById('filterMonth').value;
+            
+            if (selectedMonth === 'all') {
+                displayData(allData);
+                updateStats(allData);
+            } else {
+                const filtered = allData.filter(item => item.month === selectedMonth);
+                displayData(filtered);
+                updateStats(filtered);
+            }
+        }
+
+        function displayData(data) {
+            const tbody = document.getElementById('dataBody');
+            tbody.innerHTML = '';
+
+            // Sort by name
+            data.sort((a, b) => a.name.localeCompare(b.name));
+
+            data.forEach((item) => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td><strong>${item.name}</strong></td>
+                    <td>£${parseFloat(item.fullDay).toFixed(2)}</td>
+                    <td><span class="month-badge">${item.month || 'N/A'}</span></td>
+                `;
+            });
+
+            document.getElementById('loadingDiv').style.display = 'none';
+            document.getElementById('tableContainer').style.display = 'block';
+            document.getElementById('statsContainer').style.display = 'block';
+        }
+
+        function updateStats(data) {
+            const totalRecords = data.length;
+            const totalBonus = data.reduce((sum, item) => sum + parseFloat(item.fullDay || 0), 0);
+            const avgBonus = totalRecords > 0 ? totalBonus / totalRecords : 0;
+
+            document.getElementById('totalRecords').textContent = totalRecords;
+            document.getElementById('avgBonus').textContent = `£${avgBonus.toFixed(2)}`;
+            document.getElementById('totalBonus').textContent = `£${totalBonus.toFixed(2)}`;
+        }
+
+        window.handleFileUpload = async function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const selectedMonth = document.getElementById('monthSelect').value;
+            if (!selectedMonth) {
+                showMessage('Please select a month before uploading the file.', 'error');
+                event.target.value = '';
+                return;
+            }
+
+            const uploadBtn = document.getElementById('uploadBtn');
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Processing...';
+
+            try {
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data);
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                
+                // Convert to array of arrays to access by column letter
+                const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                if (rawData.length === 0) {
+                    showMessage('Excel file is empty', 'error');
+                    uploadBtn.disabled = false;
+                    uploadBtn.textContent = '📁 Upload Excel File';
+                    return;
+                }
+
+                // Find header row
+                let headerRowIndex = -1;
+                let nameColIndex = -1;
+                let fullDayColIndex = -1;
+
+                for (let i = 0; i < Math.min(10, rawData.length); i++) {
+                    const row = rawData[i];
+                    for (let j = 0; j < row.length; j++) {
+                        const cell = String(row[j]).toLowerCase().trim();
+                        if (cell === 'name') {
+                            nameColIndex = j;
+                            headerRowIndex = i;
+                        }
+                        if (cell === 'full day' || cell === 'fullday') {
+                            fullDayColIndex = j;
+                        }
+                    }
+                    if (nameColIndex !== -1 && fullDayColIndex !== -1) break;
+                }
+
+                // If headers not found, assume Column A (index 0) is Name and Column I (index 8) is Full Day
+                if (nameColIndex === -1) nameColIndex = 0;
+                if (fullDayColIndex === -1) fullDayColIndex = 8;
+                if (headerRowIndex === -1) headerRowIndex = 0;
+
+                const parsedData = [];
+                
+                // Process data starting from after header row
+                for (let i = headerRowIndex + 1; i < rawData.length; i++) {
+                    const row = rawData[i];
+                    const name = row[nameColIndex];
+                    const fullDay = row[fullDayColIndex];
+
+                    if (name && fullDay !== undefined && fullDay !== null && fullDay !== '') {
+                        parsedData.push({
+                            name: String(name).trim(),
+                            fullDay: parseFloat(fullDay) || 0,
+                            month: selectedMonth
+                        });
+                    }
+                }
+
+                if (parsedData.length === 0) {
+                    showMessage('No valid data found. Please check that Column A contains names and Column I contains bonus values.', 'error');
+                    uploadBtn.disabled = false;
+                    uploadBtn.textContent = '📁 Upload Excel File';
+                    event.target.value = '';
+                    return;
+                }
+
+                // Add new data (without deleting existing data)
+                showMessage(`Uploading ${parsedData.length} records for ${selectedMonth}...`, 'warning');
+                const batch = writeBatch(db);
+                const collectionRef = collection(db, "Average Bonuses");
+
+                for (const item of parsedData) {
+                    const docRef = doc(collectionRef);
+                    batch.set(docRef, item);
+                }
+
+                await batch.commit();
+
+                showMessage(`Successfully uploaded ${parsedData.length} record(s) for ${selectedMonth}!`, 'success');
+                
+                // Reload data
+                await loadData();
+                document.getElementById('clearBtn').style.display = 'inline-block';
+
+                // Reset month selector and file input
+                document.getElementById('monthSelect').value = '';
+                event.target.value = '';
+
+            } catch (error) {
+                console.error("Error processing file:", error);
+                showMessage('Error processing file. Please check the console for details.', 'error');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = '📁 Upload Excel File';
+            }
+        }
+
+        async function deleteAllData() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "Average Bonuses"));
+                const batch = writeBatch(db);
+
+                querySnapshot.forEach((document) => {
+                    batch.delete(doc(db, "Average Bonuses", document.id));
+                });
+
+                await batch.commit();
+            } catch (error) {
+                console.error("Error deleting data:", error);
+                throw error;
+            }
+        }
+
+        window.clearAllData = async function() {
+            if (!confirm('Are you sure you want to delete ALL average bonus data? This cannot be undone!')) {
+                return;
+            }
+
+            const clearBtn = document.getElementById('clearBtn');
+            clearBtn.disabled = true;
+            clearBtn.textContent = 'Deleting...';
+
+            try {
+                await deleteAllData();
+                showMessage('All data has been deleted successfully.', 'success');
+                
+                // Clear display
+                document.getElementById('tableContainer').style.display = 'none';
+                document.getElementById('statsContainer').style.display = 'none';
+                document.getElementById('filterSection').style.display = 'none';
+                clearBtn.style.display = 'none';
+                allData = [];
+                
+            } catch (error) {
+                console.error("Error clearing data:", error);
+                showMessage('Error clearing data. Please try again.', 'error');
+            } finally {
+                clearBtn.disabled = false;
+                clearBtn.textContent = '🗑️ Clear All Data';
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type} show`;
+            
+            setTimeout(() => {
+                messageDiv.className = 'message';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<!-- Catalistics: shared settings (storage, targets, links). Must load before the page scripts. -->
+<script src="catalistics-settings.js" onerror="this.remove()"></script>
+<script src="catalistics-config.js"></script>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>D-1 Call Outcomes · Catalistics</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root {
+    --bg: #F2F3F3;
+    --surface: #FFFFFF;
+    --surface-2: #F8FAFC;
+    --ink: #0F172A;
+    --ink-2: #475569;
+    --ink-3: #687078;
+    --line: #E2E8F0;
+    --line-2: #CBD5E1;
+    --navy: #F2F3F3;
+    --navy-2: #F2F3F3;
+    --accent: #0972D3;
+    --good: #067F68;
+    --good-bg: #F2F3F3;
+    --warn: #FF9900;
+    --bad: #D13212;
+    --bad-bg: #F2F3F3;
+    --neutral-bg: #F2F3F3;
+    --radius: 10px;
+    --shadow: 0 1px 2px rgba(0,28,36,0.10);
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: #F2F3F3; color: var(--ink);
+    font: 14px/1.5 -apple-system, var(--cx-font);
+    font-variant-numeric: tabular-nums;
+  }
+  button, input, select { font: inherit; color: inherit; }
+
+  .topbar { background: linear-gradient(180deg, var(--navy), var(--navy-2)); color: #161E2D; }
+  .topbar-inner { max-width: 1280px; margin: 0 auto; padding: 22px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  .brand h1 { margin: 0; font-size: 20px; font-weight: 650; }
+  .brand p { margin: 2px 0 0; color: #545B64; font-size: 13px; }
+  .top-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .sync { font-size: 12.5px; color: #545B64; text-align: right; line-height: 1.35; }
+  .sync b { color: #161E2D; font-weight: 600; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px;
+    border-radius: 4px; border: 1px solid var(--line-2); background: var(--surface);
+    cursor: pointer; font-weight: 550; font-size: 13.5px; transition: background .15s, border-color .15s;
+  }
+  .btn:hover { background: var(--surface-2); border-color: #AAB7B8; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn:focus-visible, .seg button:focus-visible, input:focus-visible, select:focus-visible, th.sort:focus-visible, tr.eng:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  .btn.primary { background: #FFFFFF; color: var(--navy); border-color: #FFFFFF; }
+  .btn.primary:hover { background: #F2F3F3; }
+  .btn.ghost-dark { background: transparent; color: #161E2D; border-color: #D5DBDB; }
+  .btn.ghost-dark:hover { background: rgba(0,28,36,0.06); }
+  .btn svg { width: 16px; height: 16px; }
+  .btn.icon { width: 36px; padding: 0; }
+
+  main { max-width: 1280px; margin: 0 auto; padding: 20px 24px 56px; }
+
+  .notice { display: none; margin-bottom: 16px; padding: 12px 16px; border-radius: var(--radius); border: 1px solid; font-size: 13.5px; }
+  .notice.show { display: block; }
+  .notice.ok { background: var(--good-bg); border-color: #067F68; color: #067F68; }
+  .notice.err { background: var(--bad-bg); border-color: #D13212; color: #D13212; }
+  .notice.info { background: #F2F3F3; border-color: #0972D3; color: #0972D3; }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .controls { padding: 16px 18px; display: flex; flex-wrap: wrap; gap: 18px 28px; align-items: flex-end; margin-bottom: 18px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .lbl { font-size: 11.5px; font-weight: 650; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); }
+  input[type=date], input[type=search], select {
+    height: 36px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: 4px; background: #FFFFFF;
+  }
+  input[type=date] { min-width: 160px; }
+  select { min-width: 210px; }
+  input[type=search] { min-width: 220px; }
+  .nav { display: flex; gap: 6px; align-items: center; }
+
+  .seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 4px; overflow: hidden; background: #FFFFFF; }
+  .seg button { border: 0; background: transparent; height: 34px; padding: 0 18px; cursor: pointer; font-weight: 600; font-size: 13.5px; color: var(--ink-2); }
+  .seg button + button { border-left: 1px solid var(--line-2); }
+  .seg button.on { background: var(--navy); color: #161E2D; }
+
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+  .kpi { padding: 16px 18px; position: relative; overflow: hidden; }
+  .kpi::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--line-2); }
+  .kpi.navy::before { background: var(--navy); }
+  .kpi.good::before { background: var(--good); }
+  .kpi .k-label { font-size: 11.5px; font-weight: 650; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); }
+  .kpi .k-value { font-size: 30px; font-weight: 650; letter-spacing: -.02em; margin-top: 4px; line-height: 1.1; }
+  .kpi.good .k-value { color: var(--good); }
+  .kpi .k-sub { font-size: 12.5px; color: var(--ink-3); margin-top: 4px; }
+  .up { color: var(--good); font-weight: 650; } .down { color: var(--bad); font-weight: 650; }
+
+  .section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; padding: 16px 18px 12px; }
+  .section-head h2 { margin: 0; font-size: 15px; font-weight: 650; }
+  .section-head .sub { color: var(--ink-3); font-size: 12.5px; }
+
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left; font-size: 11.5px; font-weight: 650; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3);
+    padding: 10px 14px; background: #FAFAFA; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); white-space: nowrap;
+  }
+  th.num, td.num { text-align: right; }
+  th.day, td.day { text-align: center; }
+  th.day small { display: block; font-weight: 500; text-transform: none; letter-spacing: 0; }
+  th.sort { cursor: pointer; user-select: none; }
+  th.sort:hover { color: var(--ink); }
+  th.sort .arr { display: inline-block; width: 10px; margin-left: 4px; color: var(--accent); }
+  tr.eng { cursor: pointer; border-bottom: 1px solid var(--line); }
+  tr.eng:hover { background: #F6F9FE; }
+  tr.eng.open { background: #F2F3F3; }
+  tr.eng td { padding: 11px 14px; vertical-align: middle; }
+  td.sep, th.sep { border-left: 1px solid var(--line); }
+  .name-cell { display: flex; align-items: center; gap: 10px; font-weight: 600; white-space: nowrap; }
+  .caret { width: 16px; height: 16px; color: var(--ink-3); transition: transform .15s; flex: none; }
+  tr.eng.open .caret { transform: rotate(90deg); color: var(--accent); }
+  .made { color: var(--good); font-weight: 650; }
+  .daycell { white-space: nowrap; }
+  .daycell .m { color: var(--good); font-weight: 650; }
+  .daycell .t { color: var(--ink-3); }
+  .daycell.none { color: var(--line-2); }
+  .bar { min-width: 140px; }
+  .meter { height: 10px; border-radius: 4px; background: var(--neutral-bg); overflow: hidden; }
+  .meter div { height: 100%; background: var(--good); }
+  tfoot td { padding: 12px 14px; font-weight: 650; background: var(--surface-2); border-top: 2px solid var(--line-2); }
+
+  tr.detail > td { padding: 0; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+  .detail-inner { padding: 6px 18px 16px 44px; }
+  .jobs { width: auto; min-width: 520px; border-collapse: collapse; background: #FFFFFF; border: 1px solid var(--line); }
+  .jobs th { background: #FAFAFA; border: 0; border-bottom: 1px solid var(--line); padding: 8px 12px; font-size: 11px; }
+  .jobs td { padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  .jobs tr:last-child td { border-bottom: 0; }
+  .mono { font-family: var(--cx-mono); font-size: 12.5px; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; background: var(--neutral-bg); color: #334155; }
+  .badge.good { background: var(--good-bg); color: #067F68; }
+
+  .outcomes { padding: 14px 18px 16px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; font-size: 12.5px; color: var(--ink-3); }
+  .outcomes .badge { font-weight: 550; }
+
+  .empty { padding: 48px 20px; text-align: center; color: var(--ink-3); }
+  .empty h3 { margin: 0 0 6px; color: var(--ink); font-size: 16px; }
+  .empty .btn { margin-top: 14px; }
+
+  body.dragging::after {
+    content: "Drop Excel file to upload"; position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+    background: #FFFFFF; color: #161E2D; font-size: 24px; font-weight: 650;
+  }
+  .footnote { margin-top: 18px; font-size: 12.5px; color: var(--ink-3); line-height: 1.6; }
+  .footnote b { color: var(--ink-2); }
+
+  @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 640px) {
+    .topbar-inner, main { padding-left: 16px; padding-right: 16px; }
+    .detail-inner { padding-left: 12px; }
+    .bar, th.bar-h { display: none; }
+    input[type=search], select { min-width: 0; width: 100%; }
+    .field.grow { width: 100%; }
+  }
+  @media print { .top-actions, .controls .nav .btn, .btn { display: none !important; } body { background: #F2F3F3; } }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="catalistics-theme.css">
+<script src="catalistics-shell.js" defer></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <h1>D-1 Call Outcomes</h1>
+      <p>Jobs and D Minus Made calls per engineer, by day, week and month</p>
+    </div>
+    <div class="top-actions">
+      <div class="sync" id="syncInfo">Loading data…</div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.xlsm,.csv" hidden>
+      <button class="btn primary" id="uploadBtn" type="button">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13V3M6 7l4-4 4 4M3 13v3a1 1 0 001 1h12a1 1 0 001-1v-3"/></svg>
+        Upload Excel
+      </button>
+      <button class="btn ghost-dark" id="exportBtn" type="button">Export CSV</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="notice" id="notice" role="status" aria-live="polite"></div>
+
+  <section class="panel controls" aria-label="Filters">
+    <div class="field">
+      <span class="lbl">View</span>
+      <div class="seg" id="viewSeg">
+        <button type="button" data-v="day" class="on">Daily</button>
+        <button type="button" data-v="week">Weekly</button>
+        <button type="button" data-v="month">Monthly</button>
+      </div>
+    </div>
+    <div class="field" id="dayField">
+      <label class="lbl" for="dayInput">Job date</label>
+      <div class="nav">
+        <button class="btn icon" type="button" id="dayPrev" title="Previous day with data" aria-label="Previous day">&#8249;</button>
+        <input type="date" id="dayInput">
+        <button class="btn icon" type="button" id="dayNext" title="Next day with data" aria-label="Next day">&#8250;</button>
+      </div>
+    </div>
+    <div class="field" id="weekField" style="display:none">
+      <label class="lbl" for="weekSelect">Week beginning</label>
+      <div class="nav">
+        <button class="btn icon" type="button" id="weekPrev" title="Previous week" aria-label="Previous week">&#8249;</button>
+        <select id="weekSelect"></select>
+        <button class="btn icon" type="button" id="weekNext" title="Next week" aria-label="Next week">&#8250;</button>
+      </div>
+    </div>
+    <div class="field" id="monthField" style="display:none">
+      <label class="lbl" for="monthSelect">Month</label>
+      <div class="nav">
+        <button class="btn icon" type="button" id="monthPrev" title="Previous month" aria-label="Previous month">&#8249;</button>
+        <select id="monthSelect"></select>
+        <button class="btn icon" type="button" id="monthNext" title="Next month" aria-label="Next month">&#8250;</button>
+      </div>
+    </div>
+    <div class="field grow">
+      <label class="lbl" for="search">Engineer</label>
+      <input type="search" id="search" placeholder="Search by name">
+    </div>
+  </section>
+
+  <section class="kpis" id="kpis" aria-label="Summary"></section>
+
+  <section class="panel" aria-label="Engineers">
+    <div class="section-head">
+      <div>
+        <h2 id="tableTitle">Engineers</h2>
+        <div class="sub" id="tableSub"></div>
+      </div>
+      <div style="display:flex; gap:8px">
+        <button class="btn" type="button" id="pdfBtn">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v10M6 9l4 4 4-4M3 15v1a1 1 0 001 1h12a1 1 0 001-1v-1"/></svg>
+          Export PDF
+        </button>
+        <button class="btn" type="button" id="expandAll">Expand all</button>
+        <button class="btn" type="button" id="collapseAll">Collapse all</button>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table id="engTable">
+        <thead id="engHead"></thead>
+        <tbody id="engBody"></tbody>
+        <tfoot id="engFoot"></tfoot>
+      </table>
+    </div>
+    <div id="emptyState" class="empty" style="display:none"></div>
+    <div class="outcomes" id="outcomes"></div>
+  </section>
+
+  <p class="footnote">
+    <b>How it's counted.</b> Every row in the upload is one job, matched on <span class="mono">Ref</span>. When you upload, any Ref already stored is skipped, so only new jobs are added and existing ones are never changed.
+    A job counts as <b>D Minus Made</b> when its <span class="mono">CallOutcome</span> reads "D Minus Made" (case and spacing ignored).
+    Weeks use the sheet's <span class="mono">Week Beg</span> column, or the Monday of the job date if that's blank. Months go by job date, so a week that spans two months is split between them.
+  </p>
+</main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, collection, getDocs, doc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import * as XLSX from "https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs";
+
+  const firebaseConfig = CATALISTICS.firebaseConfig('primary');
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const COLLECTION = "D-1 Call Outcomes";
+
+  /* ---------- State ---------- */
+  const state = {
+    rows: [], view: "day", day: "", week: "", month: "", search: "",
+    sortKey: "name", sortDir: "asc", open: new Set(), lastSync: null
+  };
+  try { const v = localStorage.getItem("d1co_view"); if (v === "day" || v === "week" || v === "month") state.view = v; } catch (e) {}
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  /* ---------- Dates (ISO yyyy-mm-dd strings) ---------- */
+  const pad = n => String(n).padStart(2, "0");
+  const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const fromIso = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+  const addDays = (s, n) => { const d = fromIso(s); d.setDate(d.getDate() + n); return iso(d); };
+  const mondayOf = s => { const d = fromIso(s); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return iso(d); };
+  const fmtDate = s => s ? fromIso(s).toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }) : "";
+  const fmtDay = s => fromIso(s).toLocaleDateString("en-GB", { weekday: "short" });
+  const fmtMonth = m => fromIso(m + "-01").toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const fmtDM = s => fromIso(s).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+
+  function parseDate(v) {
+    if (v == null || v === "" || String(v).trim().toLowerCase() === "null") return null;
+    if (v instanceof Date && !isNaN(v)) {
+      const d = new Date(v.getTime() + 12 * 3600 * 1000); // guard against midnight timezone shifts
+      return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+    }
+    if (typeof v === "number") { // Excel serial
+      const d = new Date(Math.round((v - 25569) * 864e5) + 12 * 3600 * 1000);
+      return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+    }
+    const s = String(v).trim();
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) return `${m[1]}-${pad(m[2])}-${pad(m[3])}`;
+    m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/); // UK dd/mm/yyyy
+    if (m) return `${m[3].length === 2 ? "20" + m[3] : m[3]}-${pad(m[2])}-${pad(m[1])}`;
+    return null;
+  }
+
+  /* ---------- Classification ---------- */
+  const norm = s => String(s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const isMade = outcome => norm(outcome) === "dminusmade";
+  const cleanName = n => String(n ?? "").replace(/\s*\(ENG\)\s*/gi, " ").replace(/\s+/g, " ").trim();
+  const cleanText = v => { const s = String(v ?? "").trim(); return s.toLowerCase() === "null" ? "" : s; };
+
+  /* ---------- Excel parsing (columns A–L) ---------- */
+  const FIELDS = [
+    ["ref", ["ref", "jobnumber", "jobref", "jobreference"]],
+    ["date", ["date", "jobdate"]],
+    ["weekBeg", ["weekbeg", "weekbeginning", "wc", "weekcommencing"]],
+    ["status", ["status"]],
+    ["abortReason", ["abortreason"]],
+    ["engineer", ["engineer"]],
+    ["teamLeader", ["teamleader"]],
+    ["manager", ["manager"]],
+    ["employer", ["employer"]],
+    ["callReason", ["callreason"]],
+    ["daysNotice", ["daysnotice"]],
+    ["callOutcome", ["calloutcome", "outcome"]]
+  ]; // order = column A..L, used as the fallback when a header isn't recognised
+
+  function parseWorkbook(buf) {
+    const wb = XLSX.read(buf, { type: "array", cellDates: true });
+    let grid = null;
+    for (const name of wb.SheetNames) { // first sheet with a Ref + CallOutcome header
+      const g = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: true, defval: null });
+      const h = (g[0] || []).map(norm);
+      if (h.includes("ref") && h.includes("calloutcome")) { grid = g; break; }
+    }
+    if (!grid) grid = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: null });
+
+    const head = (grid[0] || []).map(norm);
+    const idx = {};
+    FIELDS.forEach(([key, names], i) => { const f = head.findIndex(h => names.includes(h)); idx[key] = f >= 0 ? f : i; });
+
+    const out = new Map(); let skipped = 0;
+    for (let r = 1; r < grid.length; r++) {
+      const row = grid[r];
+      if (!row || row.every(c => c === null || String(c).trim() === "")) continue;
+      const ref = cleanText(row[idx.ref]);
+      const date = parseDate(row[idx.date]);
+      if (!ref || !date) { skipped++; continue; }
+      const dn = cleanText(row[idx.daysNotice]);
+      out.set(ref, {
+        ref,
+        date,
+        weekBeg: parseDate(row[idx.weekBeg]) || mondayOf(date),
+        status: cleanText(row[idx.status]),
+        abortReason: cleanText(row[idx.abortReason]),
+        engineer: cleanName(row[idx.engineer]) || "Unassigned",
+        teamLeader: cleanText(row[idx.teamLeader]),
+        manager: cleanText(row[idx.manager]),
+        employer: cleanText(row[idx.employer]),
+        callReason: cleanText(row[idx.callReason]),
+        daysNotice: dn === "" || isNaN(Number(dn)) ? (dn || null) : Number(dn),
+        callOutcome: cleanText(row[idx.callOutcome])
+      });
+    }
+    return { records: [...out.values()], skipped };
+  }
+
+  /* ---------- Firestore ---------- */
+  async function uploadRecords(records) {
+    const CHUNK = 400;
+    for (let i = 0; i < records.length; i += CHUNK) {
+      const batch = writeBatch(db);
+      records.slice(i, i + CHUNK).forEach(rec => batch.set(doc(db, COLLECTION, rec.ref.replace(/\//g, "_")), { ...rec, updatedAt: serverTimestamp() }));
+      await batch.commit();
+      setNotice("info", `Uploading… <b>${Math.min(i + CHUNK, records.length)}</b> of <b>${records.length}</b> jobs saved.`);
+    }
+  }
+
+  async function loadFromFirestore() {
+    const snap = await getDocs(collection(db, COLLECTION));
+    const rows = []; let latest = 0;
+    snap.forEach(d => {
+      const x = d.data();
+      if (!x.ref || !x.date) return;
+      rows.push({
+        ref: x.ref, date: x.date, weekBeg: x.weekBeg || mondayOf(x.date),
+        engineer: x.engineer || "Unassigned", outcome: x.callOutcome || "", made: isMade(x.callOutcome), status: x.status || ""
+      });
+      const t = x.updatedAt && x.updatedAt.toMillis ? x.updatedAt.toMillis() : 0;
+      if (t > latest) latest = t;
+    });
+    state.rows = rows;
+    state.lastSync = latest ? new Date(latest) : null;
+  }
+
+  /* ---------- Helpers ---------- */
+  function setNotice(kind, html) {
+    const n = $("notice");
+    if (!html) { n.className = "notice"; n.innerHTML = ""; return; }
+    n.className = "notice show " + kind; n.innerHTML = html;
+  }
+  const pct = (n, d) => d ? n / d * 100 : 0;
+  const fmtPct = v => (Math.round(v * 10) / 10).toFixed(1) + "%";
+  const num = n => n.toLocaleString("en-GB");
+  const uniqSorted = arr => [...new Set(arr)].sort();
+  const allDays = () => uniqSorted(state.rows.map(r => r.date));
+  const allWeeks = () => uniqSorted(state.rows.map(r => r.weekBeg));
+  const allMonths = () => uniqSorted(state.rows.map(r => r.date.slice(0, 7)));
+  const VIEW = {
+    day:   { key: () => state.day,   list: allDays,   match: (r, k) => r.date === k,             noun: "day",   prevLabel: k => fmtDM(k) },
+    week:  { key: () => state.week,  list: allWeeks,  match: (r, k) => r.weekBeg === k,          noun: "week",  prevLabel: k => "w/c " + fmtDM(k) },
+    month: { key: () => state.month, list: allMonths, match: (r, k) => r.date.slice(0, 7) === k, noun: "month", prevLabel: k => fmtMonth(k) }
+  };
+
+  function periodRows(view = state.view, key = VIEW[view].key()) {
+    return state.rows.filter(r => VIEW[view].match(r, key));
+  }
+  function previousKey() {
+    const list = VIEW[state.view].list();
+    const cur = VIEW[state.view].key();
+    const i = list.indexOf(cur);
+    return i > 0 ? list[i - 1] : null;
+  }
+
+  function byEngineer(rows) {
+    const m = new Map();
+    rows.forEach(r => { if (!m.has(r.engineer)) m.set(r.engineer, []); m.get(r.engineer).push(r); });
+    return [...m.entries()].map(([name, jobs]) => {
+      const made = jobs.filter(j => j.made).length;
+      return { name, jobs, total: jobs.length, made, pct: pct(made, jobs.length) };
+    });
+  }
+
+  /* ---------- Render ---------- */
+  function render() {
+    $("dayField").style.display = state.view === "day" ? "" : "none";
+    $("weekField").style.display = state.view === "week" ? "" : "none";
+    $("monthField").style.display = state.view === "month" ? "" : "none";
+    document.querySelectorAll("#viewSeg button").forEach(b => b.classList.toggle("on", b.dataset.v === state.view));
+    updateNavButtons();
+
+    const rows = periodRows();
+    let engs = byEngineer(rows);
+    const q = state.search.trim().toLowerCase();
+    if (q) engs = engs.filter(e => e.name.toLowerCase().includes(q));
+    const k = state.sortKey, dir = state.sortDir === "asc" ? 1 : -1;
+    engs.sort((a, b) => ((k === "name" ? a.name.localeCompare(b.name) : a[k] - b[k]) || a.name.localeCompare(b.name)) * dir);
+
+    renderKpis(rows);
+    renderTable(engs, rows);
+    renderOutcomes(rows);
+  }
+
+  function renderKpis(rows) {
+    const total = rows.length, made = rows.filter(r => r.made).length, engCount = new Set(rows.map(r => r.engineer)).size;
+    const pk = previousKey();
+    let cmp = "";
+    if (pk) {
+      const prev = periodRows(state.view, pk);
+      const pm = prev.filter(r => r.made).length;
+      const d = Math.round((pct(made, total) - pct(pm, prev.length)) * 10) / 10;
+      const label = VIEW[state.view].prevLabel(pk);
+      cmp = `<br><span class="${d > 0 ? "up" : d < 0 ? "down" : ""}">${d > 0 ? "▲" : d < 0 ? "▼" : "–"} ${Math.abs(d).toFixed(1)} pts</span> vs ${label}`;
+    }
+    $("kpis").innerHTML = `
+      <div class="panel kpi navy"><div class="k-label">Total jobs</div><div class="k-value">${num(total)}</div>
+        <div class="k-sub">${state.view === "day" ? esc(fmtDate(state.day)) : state.view === "week" ? "Week beginning " + esc(fmtDate(state.week)) : esc(fmtMonth(state.month))}</div></div>
+      <div class="panel kpi good"><div class="k-label">D Minus Made</div><div class="k-value">${num(made)}</div>
+        <div class="k-sub">${num(total - made)} jobs without</div></div>
+      <div class="panel kpi good"><div class="k-label">% D Minus Made</div><div class="k-value">${total ? fmtPct(pct(made, total)) : "–"}</div>
+        <div class="k-sub">${num(made)} of ${num(total)}${cmp}</div></div>
+      <div class="panel kpi"><div class="k-label">Engineers</div><div class="k-value">${engCount}</div>
+        <div class="k-sub">with jobs in this ${VIEW[state.view].noun}</div></div>`;
+  }
+
+  const CARET = `<svg class="caret" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>`;
+  const sortTh = (key, label, cls = "num") => `<th class="sort ${cls}" data-k="${key}" tabindex="0">${label}<span class="arr">${state.sortKey === key ? (state.sortDir === "asc" ? "▲" : "▼") : ""}</span></th>`;
+  const dayCell = (m, t) => t ? `<span class="daycell"><span class="m">${m}</span><span class="t"> / ${t}</span></span>` : `<span class="daycell none">–</span>`;
+
+  function renderTable(engs, rows) {
+    const head = $("engHead"), body = $("engBody"), foot = $("engFoot"), empty = $("emptyState");
+    const isWeek = state.view === "week", isMonth = state.view === "month";
+    const noun = VIEW[state.view].noun;
+    // sub-columns: days of the week (weekends only if worked), or weeks within the month
+    const days = isWeek
+      ? [...Array(7)].map((_, i) => addDays(state.week, i)).filter((d, i) => i < 5 || rows.some(r => r.date === d))
+      : isMonth ? uniqSorted(rows.map(r => r.weekBeg)) : [];
+    const inCol = isMonth ? (j, d) => j.weekBeg === d : (j, d) => j.date === d;
+    const cols = 1 + days.length + 4;
+    state.table = { days, engs, isWeek, isMonth, inCol, title: $("tableTitle").textContent };
+
+    $("tableTitle").textContent = isWeek ? "Engineers this week" : isMonth ? "Engineers this month" : "Engineers on this day";
+    $("tableSub").textContent = (isWeek ? "Day columns show D Minus Made / jobs. " : isMonth ? "Week columns show D Minus Made / jobs. " : "") + "Select an engineer to see their jobs.";
+
+    head.innerHTML = `<tr>${sortTh("name", "Engineer", "")}
+      ${days.map((d, i) => `<th class="day${i === 0 ? " sep" : ""}">${isMonth ? "w/c" : fmtDay(d)}<small>${fmtDM(d)}</small></th>`).join("")}
+      ${sortTh("total", isWeek ? "Week jobs" : isMonth ? "Month jobs" : "Jobs", "num sep")}${sortTh("made", "D Minus Made")}${sortTh("pct", "% Made")}
+      <th class="bar-h"></th></tr>`;
+
+    if (!state.rows.length) {
+      body.innerHTML = ""; foot.innerHTML = ""; empty.style.display = "block";
+      empty.innerHTML = `<h3>No data yet</h3>Upload the D-1 Excel file to populate the dashboard.<br><button class="btn" id="emptyUpload" type="button">Upload Excel</button>`;
+      $("emptyUpload").onclick = () => $("fileInput").click();
+      return;
+    }
+    if (!engs.length) {
+      body.innerHTML = ""; foot.innerHTML = ""; empty.style.display = "block";
+      empty.innerHTML = rows.length ? `<h3>No matching engineers</h3>Clear the engineer search to see everyone.` : `<h3>No jobs for this ${noun}</h3>Pick another ${noun}, or use the arrows to jump to one with data.`;
+      return;
+    }
+    empty.style.display = "none";
+
+    const dayTally = (jobs, d) => { const js = jobs.filter(j => inCol(j, d)); return [js.filter(j => j.made).length, js.length]; };
+
+    body.innerHTML = engs.map(e => {
+      const open = state.open.has(e.name);
+      let html = `<tr class="eng ${open ? "open" : ""}" data-name="${esc(e.name)}" tabindex="0" aria-expanded="${open}">
+        <td><div class="name-cell">${CARET}<span>${esc(e.name)}</span></div></td>
+        ${days.map((d, i) => `<td class="day${i === 0 ? " sep" : ""}">${dayCell(...dayTally(e.jobs, d))}</td>`).join("")}
+        <td class="num sep">${e.total}</td>
+        <td class="num made">${e.made}</td>
+        <td class="num">${fmtPct(e.pct)}</td>
+        <td class="bar"><div class="meter" role="img" aria-label="${fmtPct(e.pct)} D Minus Made"><div style="width:${e.pct}%"></div></div></td>
+      </tr>`;
+      if (open) html += detailRow(e, cols);
+      return html;
+    }).join("");
+
+    const shown = engs.flatMap(e => e.jobs);
+    const tMade = shown.filter(j => j.made).length;
+    foot.innerHTML = `<tr><td>Total${state.search.trim() ? " (filtered)" : ""}</td>
+      ${days.map((d, i) => `<td class="day${i === 0 ? " sep" : ""}">${dayCell(...dayTally(shown, d))}</td>`).join("")}
+      <td class="num sep">${shown.length}</td><td class="num made">${tMade}</td><td class="num">${fmtPct(pct(tMade, shown.length))}</td><td class="bar"></td></tr>`;
+  }
+
+  function detailRow(e, cols) {
+    const jobs = [...e.jobs].sort((a, b) => a.date.localeCompare(b.date) || a.ref.localeCompare(b.ref));
+    return `<tr class="detail"><td colspan="${cols}"><div class="detail-inner"><div class="table-scroll"><table class="jobs">
+      <thead><tr><th>Ref</th><th>Date</th><th>Call outcome</th><th>Status</th></tr></thead>
+      <tbody>${jobs.map(j => `<tr><td class="mono">${esc(j.ref)}</td><td>${esc(fmtDate(j.date))}</td>
+        <td><span class="badge ${j.made ? "good" : ""}">${esc(j.outcome || "Blank")}</span></td><td>${esc(j.status)}</td></tr>`).join("")}</tbody>
+      </table></div></div></td></tr>`;
+  }
+
+  // Shows every CallOutcome value in the period, so a spelling change in the source is easy to spot
+  function renderOutcomes(rows) {
+    if (!rows.length) { $("outcomes").innerHTML = ""; $("outcomes").style.display = "none"; return; }
+    const m = new Map();
+    rows.forEach(r => { const k = r.outcome || "Blank"; m.set(k, (m.get(k) || 0) + 1); });
+    $("outcomes").style.display = "";
+    $("outcomes").innerHTML = `<span>Call outcomes in this ${VIEW[state.view].noun}:</span>` +
+      [...m.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => `<span class="badge ${isMade(k) ? "good" : ""}">${esc(k)} · ${n}</span>`).join("");
+  }
+
+  /* ---------- Period controls ---------- */
+  function fillWeekSelect() {
+    const weeks = allWeeks();
+    $("weekSelect").innerHTML = weeks.slice().reverse().map(w => {
+      const n = state.rows.filter(r => r.weekBeg === w).length;
+      return `<option value="${w}">w/c ${esc(fmtDate(w))} (${n} jobs)</option>`;
+    }).join("");
+    $("weekSelect").value = state.week;
+    $("monthSelect").innerHTML = allMonths().reverse().map(m =>
+      `<option value="${m}">${esc(fmtMonth(m))} (${state.rows.filter(r => r.date.slice(0, 7) === m).length} jobs)</option>`).join("");
+    $("monthSelect").value = state.month;
+  }
+  function updateNavButtons() {
+    const days = allDays(), weeks = allWeeks();
+    $("dayPrev").disabled = !days.some(d => d < state.day);
+    $("dayNext").disabled = !days.some(d => d > state.day);
+    const wi = weeks.indexOf(state.week);
+    $("weekPrev").disabled = wi <= 0;
+    $("weekNext").disabled = wi < 0 || wi >= weeks.length - 1;
+    const months = allMonths(), mi = months.indexOf(state.month);
+    $("monthPrev").disabled = mi <= 0;
+    $("monthNext").disabled = mi < 0 || mi >= months.length - 1;
+  }
+  function setDay(d) { state.day = d; $("dayInput").value = d; state.open.clear(); render(); }
+  function setMonth(m) { state.month = m; $("monthSelect").value = m; state.open.clear(); render(); }
+  function setWeek(w) { state.week = w; $("weekSelect").value = w; state.open.clear(); render(); }
+
+  function afterDataChange() {
+    const days = allDays(), weeks = allWeeks();
+    if (!days.includes(state.day)) state.day = days[days.length - 1] || iso(new Date());
+    if (!weeks.includes(state.week)) state.week = weeks[weeks.length - 1] || mondayOf(iso(new Date()));
+    const months = allMonths();
+    if (!months.includes(state.month)) state.month = months[months.length - 1] || iso(new Date()).slice(0, 7);
+    $("dayInput").value = state.day;
+    if (days.length) { $("dayInput").min = days[0]; $("dayInput").max = days[days.length - 1]; }
+    fillWeekSelect();
+    const el = $("syncInfo");
+    el.innerHTML = state.rows.length
+      ? `<b>${num(state.rows.length)}</b> jobs stored<br>${fmtDM(days[0])} to ${esc(fmtDate(days[days.length - 1]))}` +
+        (state.lastSync ? `<br>Last upload ${state.lastSync.toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}` : "")
+      : "No data loaded";
+    render();
+  }
+
+  /* ---------- Events ---------- */
+  $("viewSeg").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    state.view = b.dataset.v; state.open.clear();
+    try { localStorage.setItem("d1co_view", state.view); } catch (err) {}
+    render();
+  });
+  $("dayInput").addEventListener("change", e => { if (e.target.value) setDay(e.target.value); });
+  $("dayPrev").onclick = () => { const p = allDays().filter(d => d < state.day).pop(); if (p) setDay(p); };
+  $("dayNext").onclick = () => { const n = allDays().find(d => d > state.day); if (n) setDay(n); };
+  $("weekSelect").addEventListener("change", e => setWeek(e.target.value));
+  $("weekPrev").onclick = () => { const w = allWeeks(), i = w.indexOf(state.week); if (i > 0) setWeek(w[i - 1]); };
+  $("weekNext").onclick = () => { const w = allWeeks(), i = w.indexOf(state.week); if (i >= 0 && i < w.length - 1) setWeek(w[i + 1]); };
+  $("monthSelect").addEventListener("change", e => setMonth(e.target.value));
+  $("monthPrev").onclick = () => { const m = allMonths(), i = m.indexOf(state.month); if (i > 0) setMonth(m[i - 1]); };
+  $("monthNext").onclick = () => { const m = allMonths(), i = m.indexOf(state.month); if (i >= 0 && i < m.length - 1) setMonth(m[i + 1]); };
+  $("search").addEventListener("input", e => { state.search = e.target.value; render(); });
+
+  $("engHead").addEventListener("click", e => { const th = e.target.closest("th.sort"); if (th) sortBy(th.dataset.k); });
+  $("engHead").addEventListener("keydown", e => { const th = e.target.closest("th.sort"); if (th && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); sortBy(th.dataset.k); } });
+  function sortBy(k) {
+    if (state.sortKey === k) state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+    else { state.sortKey = k; state.sortDir = k === "name" ? "asc" : "desc"; }
+    render();
+  }
+
+  function toggleEng(name) { state.open.has(name) ? state.open.delete(name) : state.open.add(name); render(); }
+  $("engBody").addEventListener("click", e => { const tr = e.target.closest("tr.eng"); if (tr) toggleEng(tr.dataset.name); });
+  $("engBody").addEventListener("keydown", e => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const tr = e.target.closest("tr.eng"); if (tr) { e.preventDefault(); toggleEng(tr.dataset.name); }
+  });
+  $("expandAll").onclick = () => { byEngineer(periodRows()).forEach(e => state.open.add(e.name)); render(); };
+  $("collapseAll").onclick = () => { state.open.clear(); render(); };
+
+  $("uploadBtn").onclick = () => $("fileInput").click();
+  $("fileInput").addEventListener("change", e => { const f = e.target.files[0]; if (f) handleFile(f); e.target.value = ""; });
+  let dragDepth = 0;
+  window.addEventListener("dragenter", e => { if (e.dataTransfer && [...e.dataTransfer.types].includes("Files")) { dragDepth++; document.body.classList.add("dragging"); } });
+  window.addEventListener("dragleave", () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) document.body.classList.remove("dragging"); });
+  window.addEventListener("dragover", e => e.preventDefault());
+  window.addEventListener("drop", e => {
+    e.preventDefault(); dragDepth = 0; document.body.classList.remove("dragging");
+    const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) handleFile(f);
+  });
+
+  async function handleFile(file) {
+    try {
+      setNotice("info", `Reading <b>${esc(file.name)}</b>…`);
+      const { records, skipped } = parseWorkbook(await file.arrayBuffer());
+      if (!records.length) { setNotice("err", `No job rows found in <b>${esc(file.name)}</b>. Check that column A is Ref and column B is Date.`); return; }
+      setNotice("info", `Checking <b>${num(records.length)}</b> jobs against what's already stored…`);
+      await loadFromFirestore(); // fresh check, in case someone else uploaded since the page opened
+      const existing = new Set(state.rows.map(r => r.ref));
+      const fresh = records.filter(r => !existing.has(r.ref));
+      const dupes = records.length - fresh.length;
+      const extra = (skipped ? ` ${skipped} row${skipped === 1 ? "" : "s"} skipped (no Ref or Date).` : "");
+      if (!fresh.length) {
+        afterDataChange();
+        setNotice("info", `<b>${esc(file.name)}</b>: all ${num(records.length)} jobs are already stored, so nothing was added.` + extra);
+        return;
+      }
+      await uploadRecords(fresh);
+      await loadFromFirestore();
+      // jump to the latest day/week/month among the newly added jobs
+      const latest = fresh.map(r => r.date).sort().pop();
+      state.day = latest; state.week = fresh.find(r => r.date === latest).weekBeg; state.month = latest.slice(0, 7);
+      afterDataChange();
+      setNotice("ok", `<b>${esc(file.name)}</b> uploaded: ${num(fresh.length)} new job${fresh.length === 1 ? "" : "s"} added` +
+        (dupes ? `, ${num(dupes)} skipped because the job number already exists` : "") + "." + extra);
+    } catch (err) {
+      console.error(err);
+      setNotice("err", `Upload failed: ${esc(err.message || err)}.` + (/permission|insufficient/i.test(String(err.message)) ? ` Check your Firestore rules allow read and write on "${COLLECTION}".` : ""));
+    }
+  }
+
+  $("exportBtn").onclick = () => {
+    const rows = periodRows(); if (!rows.length) return;
+    const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const lines = ["Engineer,Ref,Date,Week Beg,CallOutcome,D Minus Made"];
+    rows.slice().sort((a, b) => a.engineer.localeCompare(b.engineer) || a.date.localeCompare(b.date))
+      .forEach(r => lines.push([q(r.engineer), q(r.ref), r.date, r.weekBeg, q(r.outcome), r.made ? "Yes" : "No"].join(",")));
+    const blob = new Blob(["﻿" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = state.view === "day" ? `D-1_${state.day}.csv` : state.view === "week" ? `D-1_week_${state.week}.csv` : `D-1_month_${state.month}.csv`;
+    a.click(); URL.revokeObjectURL(a.href);
+  };
+
+  $("pdfBtn").onclick = () => {
+    const t = state.table;
+    if (!t || !t.engs.length) { setNotice("err", "There's nothing in the engineers table to export."); return; }
+    if (!window.jspdf) { setNotice("err", "The PDF library didn't load. Check your internet connection and refresh the page."); return; }
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const period = state.view === "day" ? fmtDate(state.day) : state.view === "week" ? "Week beginning " + fmtDate(state.week) : fmtMonth(state.month);
+    const shown = t.engs.flatMap(e => e.jobs);
+    const made = shown.filter(j => j.made).length;
+    const cell = (jobs, d) => { const js = jobs.filter(j => t.inCol(j, d)); return js.length ? `${js.filter(j => j.made).length} / ${js.length}` : "-"; };
+    const subHead = d => (t.isMonth ? "w/c " : fmtDay(d) + " ") + fmtDM(d);
+
+    pdf.setFont("helvetica", "bold"); pdf.setFontSize(16); pdf.setTextColor(11, 31, 58);
+    pdf.text(`D-1 Call Outcomes: ${t.title}`, 14, 16);
+    pdf.setFont("helvetica", "normal"); pdf.setFontSize(11); pdf.setTextColor(71, 85, 105);
+    pdf.text(period + (state.search.trim() ? `   (filtered: "${state.search.trim()}")` : ""), 14, 23);
+    pdf.text(`Total jobs ${num(shown.length)}   |   D Minus Made ${num(made)}   |   ${fmtPct(pct(made, shown.length))} made   |   ${t.engs.length} engineer${t.engs.length === 1 ? "" : "s"}`, 14, 29);
+
+    const head = [["Engineer", ...t.days.map(subHead), t.isWeek ? "Week jobs" : t.isMonth ? "Month jobs" : "Jobs", "D Minus Made", "% Made"]];
+    const body = t.engs.map(e => [e.name, ...t.days.map(d => cell(e.jobs, d)), e.total, e.made, fmtPct(e.pct)]);
+    const foot = [["Total", ...t.days.map(d => cell(shown, d)), shown.length, made, fmtPct(pct(made, shown.length))]];
+    const numCols = {};
+    for (let i = 1; i <= t.days.length; i++) numCols[i] = { halign: "center" };
+    for (let i = t.days.length + 1; i <= t.days.length + 3; i++) numCols[i] = { halign: "right" };
+
+    pdf.autoTable({
+      head, body, foot, startY: 34, theme: "grid", showFoot: "lastPage",
+      styles: { fontSize: 9, cellPadding: 2.2, lineColor: [226, 232, 240], lineWidth: 0.2, textColor: [15, 23, 42] },
+      headStyles: { fillColor: [11, 31, 58], textColor: 255, fontStyle: "bold", halign: "center" },
+      footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: { 0: { fontStyle: "bold", halign: "left" }, ...numCols },
+      didParseCell: d => {
+        if (d.section === "body") return;
+        const i = d.column.index;
+        d.cell.styles.halign = i === 0 ? "left" : i > t.days.length ? "right" : "center";
+      },
+      didDrawPage: () => {
+        const h = pdf.internal.pageSize.getHeight(), w = pdf.internal.pageSize.getWidth();
+        pdf.setFontSize(8.5); pdf.setTextColor(100, 116, 139);
+        pdf.text(`Generated ${new Date().toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}`, 14, h - 8);
+        pdf.text(`Page ${pdf.internal.getNumberOfPages()}`, w - 14, h - 8, { align: "right" });
+      }
+    });
+
+    const key = state.view === "day" ? state.day : state.view === "week" ? "week_" + state.week : "month_" + state.month;
+    pdf.save(`D-1_engineers_${key}.pdf`);
+  };
+
+  /* ---------- Boot ---------- */
+  (async function boot() {
+    try {
+      await loadFromFirestore();
+    } catch (err) {
+      console.error(err);
+      setNotice("err", `Could not load data from Firebase: ${esc(err.message || err)}.`);
+    }
+    afterDataChange();
+  })();
+</script>
+</body>
+</html>

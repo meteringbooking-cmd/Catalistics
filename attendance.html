@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<!-- Catalistics: shared settings (storage, targets, links). Must load before the page scripts. -->
+<script src="catalistics-settings.js" onerror="this.remove()"></script>
+<script src="catalistics-config.js"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance · Catalistics</title>
+    <style>
+        :root {
+            --bg: #F2F3F3;
+            --surface: #FFFFFF;
+            --border: #D5DBDB;
+            --border-hi: #D5DBDB;
+            --amber: #FF9900;
+            --cyan: #067F68;
+            --text:      #E8ECHO4;
+            --text-mid: #545B64;
+            --text-dim: #3D5168;
+            --danger: #D13212;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { height: 100%; }
+
+        body {
+            font-family: var(--cx-font);
+            background: #F2F3F3; color: var(--text);
+            min-height: 100vh; display: flex; flex-direction: column;
+        }
+
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background-image: linear-gradient(#FFF7E8 1px, transparent 1px),
+                linear-gradient(90deg, #FFF7E8 1px, transparent 1px);
+            background-size: 40px 40px; pointer-events: none; z-index: 0;
+        }
+        body::after {
+            content: ''; position: fixed; top: -200px; left: 50%;
+            transform: translateX(-50%); width: 800px; height: 600px;
+            background: radial-gradient(ellipse, #FFF7E8 0%, transparent 70%);
+            pointer-events: none; z-index: 0;
+        }
+
+        .topbar {
+            position: relative; z-index: 10;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 48px; height: 64px;
+            border-bottom: 1px solid var(--border);
+            background: #F2F3F3; backdrop-filter: blur(12px);
+            animation: fadeDown 0.6s ease both;
+        }
+        .topbar-brand { display: flex; align-items: center; gap: 12px; }
+        .brand-mark {
+            width: 32px; height: 32px; background: var(--amber);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        }
+        .brand-name {
+            font-family: var(--cx-font);
+            font-size: 1.25rem; font-weight: 700;
+            letter-spacing: 0.12em; text-transform: uppercase; color: var(--text);
+        }
+        .brand-name span { color: var(--amber); }
+        .back-link {
+            font-family: var(--cx-font); font-size: 0.72rem;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: var(--text-mid); text-decoration: none;
+            border: 1px solid var(--border); padding: 0.35rem 0.8rem;
+            border-radius: 4px; transition: all 0.2s;
+        }
+        .back-link:hover { color: var(--amber); border-color: var(--amber); }
+
+        .hero {
+            position: relative; z-index: 10;
+            padding: 48px 48px 32px;
+            animation: fadeUp 0.7s ease 0.1s both;
+        }
+        .hero-label {
+            font-family: var(--cx-font); font-size: 0.7rem;
+            letter-spacing: 0.18em; text-transform: uppercase;
+            color: var(--amber); margin-bottom: 12px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .hero-label::before { content: ''; display: block; width: 24px; height: 1px; background: var(--amber); }
+        .hero-title {
+            font-family: var(--cx-font);
+            font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 900;
+            line-height: 0.95; text-transform: uppercase; color: var(--text); margin-bottom: 12px;
+        }
+        .hero-title em { font-style: normal; color: var(--amber); }
+        .hero-sub { font-size: 0.95rem; font-weight: 300; color: var(--text-mid); }
+
+        .content { position: relative; z-index: 10; padding: 0 48px 48px; flex: 1; }
+
+        .controls-bar {
+            display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 4px; padding: 20px 24px; margin-bottom: 20px;
+            animation: fadeUp 0.6s ease 0.2s both;
+        }
+        .ctrl-group { display: flex; flex-direction: column; gap: 8px; }
+        .ctrl-label {
+            font-family: var(--cx-font); font-size: 0.65rem;
+            letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim);
+        }
+        .ctrl-input {
+            background: var(--bg); border: 1px solid var(--border);
+            color: var(--text); padding: 0.6rem 1rem; border-radius: 4px;
+            font-family: var(--cx-font); font-size: 0.85rem; transition: border 0.2s;
+        }
+        .ctrl-input:focus { outline: none; border-color: var(--amber); }
+        .ctrl-actions { display: flex; gap: 10px; align-items: flex-end; margin-left: auto; }
+
+        .btn-upload {
+            display: flex; align-items: center; gap: 8px;
+            background: transparent; border: 1px solid var(--border-hi);
+            color: var(--text-mid); padding: 0.6rem 1.2rem; border-radius: 4px;
+            font-family: var(--cx-font);
+            font-size: 0.85rem; font-weight: 600; letter-spacing: 0.06em;
+            text-transform: uppercase; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+        }
+        .btn-upload:hover { border-color: var(--cyan); color: var(--cyan); }
+
+        .btn-save {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--amber); border: none; color: #080C14;
+            padding: 0.6rem 1.4rem; border-radius: 4px;
+            font-family: var(--cx-font);
+            font-size: 0.85rem; font-weight: 700; letter-spacing: 0.06em;
+            text-transform: uppercase; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+        }
+        .btn-save:hover { background: #FF9900; transform: none; }
+        .btn-save:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        #fileInput { display: none; }
+
+        /* ── CODES PANEL ── */
+        .codes-panel {
+            background: #F0F8F6;
+            border: 1px solid rgba(6,127,104,0.35);
+            border-radius: 4px; padding: 16px 20px;
+            margin-bottom: 20px;
+            animation: fadeUp 0.6s ease 0.25s both;
+        }
+        .codes-title {
+            font-family: var(--cx-mono); font-size: 0.68rem;
+            letter-spacing: 0.15em; text-transform: uppercase;
+            color: var(--cyan); margin-bottom: 12px;
+        }
+        .codes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 6px 24px;
+        }
+        .code-item {
+            display: flex; align-items: center; gap: 8px;
+            font-family: var(--cx-mono); font-size: 0.72rem; color: var(--text-mid);
+        }
+        .code-badge {
+            background: #F0F8F6; border: 1px solid rgba(6,127,104,0.35);
+            color: var(--cyan); padding: 0.1rem 0.5rem; border-radius: 4px;
+            font-size: 0.68rem; font-weight: 500; white-space: nowrap;
+        }
+
+        /* ── DUPLICATE WARNING BANNER ── */
+        .duplicate-banner {
+            display: none;
+            align-items: center; gap: 12px;
+            background: #FFF7E8; border: 1px solid rgba(255,153,0,0.35);
+            border-radius: 4px; padding: 14px 20px; margin-bottom: 16px;
+            animation: fadeUp 0.4s ease both;
+        }
+        .duplicate-banner.show { display: flex; }
+        .dup-icon { font-size: 1.1rem; flex-shrink: 0; }
+        .dup-text {
+            font-family: var(--cx-font); font-size: 0.78rem;
+            color: var(--amber); line-height: 1.5; flex: 1;
+        }
+        .dup-text strong { font-weight: 600; }
+        .dup-badge {
+            background: var(--amber); color: #080C14;
+            font-family: var(--cx-font);
+            font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
+            text-transform: uppercase; padding: 0.25rem 0.7rem; border-radius: 4px;
+            white-space: nowrap; flex-shrink: 0;
+        }
+
+        .message {
+            padding: 12px 16px; border-radius: 4px;
+            font-family: var(--cx-font); font-size: 0.8rem;
+            margin-bottom: 16px; display: none;
+        }
+        .message.show { display: block; }
+        .message.success { background: #F0F8F6; color: var(--cyan); border: 1px solid rgba(6,127,104,0.35); }
+        .message.error   { background: #FDF3F1; color: var(--danger); border: 1px solid rgba(209,50,18,0.35); }
+        .message.warning { background: #FFF7E8; color: var(--amber); border: 1px solid rgba(255,153,0,0.35); }
+
+        .table-wrap {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 4px; overflow: hidden;
+            animation: fadeUp 0.6s ease 0.3s both;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            background: #FAFAFA; padding: 12px 20px;
+            text-align: left;
+            font-family: var(--cx-font); font-size: 0.62rem;
+            letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim);
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody tr { border-bottom: 1px solid rgba(28,42,58,0.6); transition: background 0.15s; }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: #FFF7E8; }
+        tbody tr.row-missing { background: #FFF7E8 !important; border-left: 3px solid var(--amber); }
+        tbody tr.row-prefilled { border-left: 3px solid rgba(6,127,104,0.4); }
+
+        td { padding: 12px 20px; vertical-align: middle; }
+        .eng-name { font-weight: 600; color: var(--text); font-size: 0.88rem; }
+        .eng-leader { font-family: var(--cx-font); font-size: 0.65rem; color: var(--text-dim); margin-top: 3px; }
+
+        .attendance-select {
+            background: var(--bg); border: 1px solid var(--border);
+            color: var(--text); padding: 0.55rem 0.9rem;
+            border-radius: 4px; font-family: var(--cx-font);
+            font-size: 0.82rem; min-width: 200px; cursor: pointer; transition: border 0.15s;
+        }
+        .attendance-select:focus { outline: none; border-color: var(--amber); }
+        .attendance-select option { background: var(--surface); }
+        .attendance-select.prefilled { border-color: rgba(6,127,104,0.35); color: var(--cyan); }
+
+        .save-footer {
+            background: var(--surface); border-top: 1px solid var(--border);
+            padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;
+            gap: 12px;
+        }
+        .footer-note {
+            font-family: var(--cx-font); font-size: 0.7rem; color: var(--text-dim);
+        }
+        .footer-note span { color: var(--cyan); }
+
+        .loading-state {
+            padding: 60px; text-align: center;
+            color: var(--text-dim); font-family: var(--cx-font); font-size: 0.82rem;
+        }
+        .spinner {
+            display: inline-block; width: 20px; height: 20px;
+            border: 2px solid var(--border); border-top-color: var(--amber);
+            border-radius: 50%; animation: spin 0.7s linear infinite;
+            margin-right: 10px; vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeUp   { from { opacity: 0; transform: translateY(16px); }  to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 768px) {
+            .topbar, .hero, .content { padding-left: 20px; padding-right: 20px; }
+            .hero { padding-top: 32px; }
+            .ctrl-actions { margin-left: 0; }
+            .attendance-select { min-width: 140px; }
+        }
+    </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="catalistics-theme.css">
+<script src="catalistics-shell.js" defer></script>
+</head>
+<body>
+
+    <header class="topbar">
+        <div class="topbar-brand">
+            <div class="brand-mark"></div>
+            <div class="brand-name">Catalistics</div>
+        </div>
+        <a href="index.html" class="back-link">← Home</a>
+    </header>
+
+    <section class="hero">
+        <div class="hero-label">Daily Record</div>
+        <h1 class="hero-title">Submit <em>Attendance</em></h1>
+        <p class="hero-sub">Upload or manually enter the previous day's attendance for all engineers.</p>
+    </section>
+
+    <main class="content">
+
+        <div class="controls-bar">
+            <div class="ctrl-group">
+                <span class="ctrl-label">Date</span>
+                <input type="date" id="dataDate" class="ctrl-input" required>
+            </div>
+            <div class="ctrl-actions">
+                <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFileUpload(event)">
+                <button class="btn-upload" onclick="document.getElementById('fileInput').click()">📁 Upload Excel</button>
+                <button class="btn-save" onclick="saveData(event)" id="quickSaveBtn">💾 Save Attendance</button>
+            </div>
+        </div>
+
+        <!-- Duplicate date warning banner -->
+        <div class="duplicate-banner" id="duplicateBanner">
+            <div class="dup-icon">⚠️</div>
+            <div class="dup-text">
+                <strong>Existing records found for this date.</strong><br>
+                Saving will <strong>replace</strong> all <span id="dupCount">0</span> existing entries for <span id="dupDate">—</span> with the values below.
+            </div>
+            <div class="dup-badge">Will Overwrite</div>
+        </div>
+
+        <div class="codes-panel">
+            <div class="codes-title">Attendance Codes</div>
+            <div class="codes-grid">
+                <div class="code-item"><span class="code-badge">X</span> In</div>
+                <div class="code-item"><span class="code-badge">H</span> Holiday</div>
+                <div class="code-item"><span class="code-badge">H/H</span> Half Day Holiday</div>
+                <div class="code-item"><span class="code-badge">Sick</span> Sick</div>
+                <div class="code-item"><span class="code-badge">AAUP</span> Authorised Absence Unpaid</div>
+                <div class="code-item"><span class="code-badge">TOFD</span> Time Off For Dependants</div>
+                <div class="code-item"><span class="code-badge">AAP</span> Authorised Absence Paid</div>
+                <div class="code-item"><span class="code-badge">Training</span> Training</div>
+            </div>
+        </div>
+
+        <div id="message" class="message"></div>
+
+        <div class="table-wrap">
+            <div id="loadingDiv" class="loading-state">
+                <span class="spinner"></span>Loading engineers…
+            </div>
+            <div id="tableContainer" style="display:none;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Engineer</th>
+                            <th>Attendance Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="engineersBody"></tbody>
+                </table>
+                <div class="save-footer">
+                    <div class="footer-note" id="footerNote"></div>
+                    <button class="btn-save" onclick="saveData(event)">💾 Save Attendance</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import {
+            getFirestore, collection, getDocs, addDoc,
+            query, where, deleteDoc, doc, serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs';
+
+        const firebaseConfig = CATALISTICS.firebaseConfig('primary');
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // ── Set default date to yesterday ──
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        document.getElementById('dataDate').valueAsDate = yesterday;
+
+        let engineers = [];
+        let duplicateDocIds = []; // IDs of existing docs for the selected date
+
+        const attendanceOptions = [
+            { value: '', label: '-- Select Status --' },
+            { value: 'X', label: 'X – In' },
+            { value: 'H', label: 'H – Holiday' },
+            { value: 'H/H', label: 'H/H – Half Day Holiday' },
+            { value: 'Sick', label: 'Sick' },
+            { value: 'AAUP', label: 'AAUP – Authorised Absence Unpaid' },
+            { value: 'TOFD', label: 'TOFD – Time Off For Dependants' },
+            { value: 'AAP', label: 'AAP – Authorised Absence Paid' },
+            { value: 'Training', label: 'Training' }
+        ];
+
+        // ── Load engineers from Firestore ──
+        async function loadEngineers() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "engineers"));
+                engineers = [];
+                querySnapshot.forEach(doc => engineers.push({ id: doc.id, ...doc.data() }));
+                engineers.sort((a, b) => {
+                    const l = a.teamLeader.localeCompare(b.teamLeader);
+                    return l !== 0 ? l : a.engineerName.localeCompare(b.engineerName);
+                });
+                displayEngineers();
+                // Check for duplicates on the default date
+                await checkForDuplicates(document.getElementById('dataDate').value);
+            } catch (error) {
+                console.error(error);
+                document.getElementById('loadingDiv').innerHTML = 'Error loading engineers.';
+            }
+        }
+
+        function displayEngineers() {
+            const tbody = document.getElementById('engineersBody');
+            tbody.innerHTML = '';
+
+            if (!engineers.length) {
+                document.getElementById('loadingDiv').innerHTML = 'No engineers found.';
+                return;
+            }
+
+            const optHtml = attendanceOptions.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+
+            engineers.forEach((engineer, index) => {
+                const row = tbody.insertRow();
+                row.setAttribute('data-index', index);
+                row.innerHTML = `
+                    <td>
+                        <div class="eng-name">${engineer.engineerName}</div>
+                        <div class="eng-leader">${engineer.teamLeader}</div>
+                    </td>
+                    <td>
+                        <select class="attendance-select" id="attendance_${index}" data-row-index="${index}">
+                            ${optHtml}
+                        </select>
+                    </td>
+                `;
+            });
+
+            document.querySelectorAll('.attendance-select').forEach(sel => {
+                sel.addEventListener('change', function () { updateRowHighlight(this); });
+            });
+
+            document.getElementById('loadingDiv').style.display = 'none';
+            document.getElementById('tableContainer').style.display = 'block';
+        }
+
+        // ── Check Firestore for existing records on a given date ──
+        async function checkForDuplicates(date) {
+            duplicateDocIds = [];
+            if (!date) return;
+
+            try {
+                const q = query(collection(db, "attendance"), where("date", "==", date));
+                const snap = await getDocs(q);
+
+                duplicateDocIds = snap.docs.map(d => d.id);
+
+                const banner = document.getElementById('duplicateBanner');
+                if (duplicateDocIds.length > 0) {
+                    document.getElementById('dupCount').textContent = duplicateDocIds.length;
+                    document.getElementById('dupDate').textContent = formatDate(date);
+                    banner.classList.add('show');
+
+                    // Pre-fill existing values into the dropdowns
+                    snap.docs.forEach(d => {
+                        const data = d.data();
+                        const idx = engineers.findIndex(e => e.id === data.engineerId);
+                        if (idx !== -1) {
+                            const sel = document.getElementById(`attendance_${idx}`);
+                            if (sel) {
+                                const opt = Array.from(sel.options).find(o => o.value === data.attendance);
+                                if (opt) {
+                                    sel.value = opt.value;
+                                    sel.classList.add('prefilled');
+                                    const row = document.querySelector(`tr[data-index="${idx}"]`);
+                                    if (row) row.classList.add('row-prefilled');
+                                }
+                            }
+                        }
+                    });
+
+                    const filled = engineers.filter((_, i) => document.getElementById(`attendance_${i}`)?.value).length;
+                    document.getElementById('footerNote').innerHTML =
+                        `<span>${filled}</span> of ${engineers.length} engineers pre-filled from existing records`;
+                } else {
+                    banner.classList.remove('show');
+                    document.getElementById('footerNote').innerHTML = '';
+                }
+            } catch (error) {
+                console.error('Duplicate check failed:', error);
+            }
+        }
+
+        // ── Date change → re-check duplicates & reset selects ──
+        document.getElementById('dataDate').addEventListener('change', async function () {
+            // Clear all selects
+            engineers.forEach((_, i) => {
+                const sel = document.getElementById(`attendance_${i}`);
+                if (sel) {
+                    sel.value = '';
+                    sel.classList.remove('prefilled');
+                }
+                const row = document.querySelector(`tr[data-index="${i}"]`);
+                if (row) row.classList.remove('row-missing', 'row-prefilled');
+            });
+            await checkForDuplicates(this.value);
+        });
+
+        function updateRowHighlight(el) {
+            const row = document.querySelector(`tr[data-index="${el.getAttribute('data-row-index')}"]`);
+            if (row) {
+                row.classList.toggle('row-missing', el.value === '');
+                if (el.value !== '') row.classList.remove('row-missing');
+            }
+        }
+
+        function highlightMissing() {
+            engineers.forEach((_, i) => {
+                const sel = document.getElementById(`attendance_${i}`);
+                const row = document.querySelector(`tr[data-index="${i}"]`);
+                if (sel && row) row.classList.toggle('row-missing', sel.value === '');
+            });
+        }
+
+        // ── SAVE (upsert: delete existing then add new) ──
+        window.saveData = async function (event) {
+            const date = document.getElementById('dataDate').value;
+            if (!date) return showMessage('Please select a date', 'error');
+
+            const clickedBtn = event.target;
+            clickedBtn.disabled = true;
+            const orig = clickedBtn.innerHTML;
+            clickedBtn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;margin:0;"></span>';
+
+            try {
+                // 1. Build new records from current dropdown values
+                const newRecords = [];
+                for (let i = 0; i < engineers.length; i++) {
+                    const attendance = document.getElementById(`attendance_${i}`).value;
+                    if (attendance) {
+                        newRecords.push({
+                            engineerId: engineers[i].id,
+                            engineerName: engineers[i].engineerName,
+                            teamLeader: engineers[i].teamLeader,
+                            date,
+                            attendance
+                        });
+                    }
+                }
+
+                if (!newRecords.length) {
+                    showMessage('No attendance to save. Please select at least one status.', 'error');
+                    clickedBtn.disabled = false; clickedBtn.innerHTML = orig; return;
+                }
+
+                // 2. Delete all existing records for this date (if any)
+                if (duplicateDocIds.length > 0) {
+                    const deletions = duplicateDocIds.map(id => deleteDoc(doc(db, "attendance", id)));
+                    await Promise.all(deletions);
+                }
+
+                // 3. Add the new records
+                const additions = newRecords.map(record =>
+                    addDoc(collection(db, "attendance"), { ...record, submittedAt: serverTimestamp() })
+                );
+                await Promise.all(additions);
+
+                const wasOverwrite = duplicateDocIds.length > 0;
+                showMessage(
+                    wasOverwrite
+                        ? `Replaced ${duplicateDocIds.length} existing record(s) with ${newRecords.length} updated entries for ${formatDate(date)}.`
+                        : `Attendance saved successfully! ${newRecords.length} record(s) added for ${formatDate(date)}.`,
+                    'success'
+                );
+
+                // Reset UI
+                for (let i = 0; i < engineers.length; i++) {
+                    const sel = document.getElementById(`attendance_${i}`);
+                    sel.value = '';
+                    sel.classList.remove('prefilled');
+                }
+                document.querySelectorAll('tr[data-index]').forEach(r => r.classList.remove('row-missing', 'row-prefilled'));
+                document.getElementById('duplicateBanner').classList.remove('show');
+                document.getElementById('footerNote').innerHTML = '';
+                duplicateDocIds = [];
+
+            } catch (error) {
+                console.error(error);
+                showMessage('Error saving attendance. Please try again.', 'error');
+            } finally {
+                clickedBtn.disabled = false; clickedBtn.innerHTML = orig;
+            }
+        };
+
+        function showMessage(text, type) {
+            const el = document.getElementById('message');
+            el.textContent = text;
+            el.className = `message ${type} show`;
+            setTimeout(() => { el.className = 'message'; }, 6000);
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '—';
+            const [y, m, d] = dateStr.split('-');
+            return `${d}/${m}/${y}`;
+        }
+
+        // ── Excel upload ──
+        window.handleFileUpload = async function (event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            try {
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data);
+                const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                if (!jsonData.length) return showMessage('Excel file is empty', 'error');
+
+                let matchedCount = 0;
+                jsonData.forEach(row => {
+                    const engineerName = row['Engineer'] || row['engineer'] || row['Name'];
+                    if (!engineerName) return;
+                    const idx = engineers.findIndex(e => e.engineerName.toLowerCase().trim() === engineerName.toLowerCase().trim());
+                    if (idx !== -1) {
+                        const val = (row['Attendance'] || row['attendance'] || row['Status'] || '').toString().trim();
+                        const sel = document.getElementById(`attendance_${idx}`);
+                        const opt = Array.from(sel.options).find(o => o.value.toLowerCase() === val.toLowerCase());
+                        if (opt) {
+                            sel.value = opt.value;
+                            sel.classList.remove('prefilled');
+                            const row2 = document.querySelector(`tr[data-index="${idx}"]`);
+                            if (row2) row2.classList.remove('row-prefilled');
+                            matchedCount++;
+                        }
+                    }
+                });
+
+                highlightMissing();
+                const missingCount = engineers.filter((_, i) => !document.getElementById(`attendance_${i}`)?.value).length;
+
+                showMessage(matchedCount > 0
+                    ? (missingCount > 0
+                        ? `Loaded ${matchedCount} record(s). ${missingCount} still need attendance (highlighted).`
+                        : `Loaded attendance for all ${matchedCount} engineer(s)!`)
+                    : 'No matching engineers found.',
+                    matchedCount === 0 ? 'error' : missingCount > 0 ? 'warning' : 'success');
+
+                event.target.value = '';
+            } catch (error) {
+                console.error(error);
+                showMessage('Error reading Excel file.', 'error');
+            }
+        };
+
+        loadEngineers();
+    </script>
+</body>
+</html>

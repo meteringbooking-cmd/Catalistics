@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<!-- Catalistics: shared settings (storage, targets, links). Must load before the page scripts. -->
+<script src="catalistics-settings.js" onerror="this.remove()"></script>
+<script src="catalistics-config.js"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Working Hours Dashboard · Catalistics</title>
+    <meta name="description" content="Engineer working hours matrix — track daily and weekly hours at a glance.">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #F2F3F3;
+            --bg-card: #FFFFFF;
+            --bg-input: #F2F3F3;
+            --bg-row-alt: rgba(0,28,36,0.014);
+            --border: #E9EBED;
+            --border-hi: rgba(9,114,211,0.35);
+            --text: #161E2D;
+            --text-2: #545B64;
+            --text-3: #4B5563;
+            --cyan: #0972D3;
+            --teal: #067F68;
+            --violet: #0972D3;
+            --amber: #FF9900;
+            --green: #1D8102;
+            --red: #D13212;
+            --rose: #D13212;
+            /* cell fills — solid enough to be obvious */
+            --fill-green: #FFFFFF;
+            --fill-amber: #FFFFFF;
+            --fill-red: #FFFFFF;
+            --fill-absent: #FFFFFF;
+            --fill-holiday: #FFFFFF;
+            --fill-empty: rgba(22,30,45,0.03);
+            --fill-wknd: rgba(22,30,45,0.01);
+            /* text in cells */
+            --txt-green: #1D8102;
+            --txt-amber: #8D6605;
+            --txt-red: #D13212;
+            --txt-absent: #C33D69;
+            --txt-holiday: #8456CE;
+        }
+
+        body {
+            font-family: var(--cx-font);
+            background: #F2F3F3;
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ─── HEADER ─── */
+        .header {
+            background: linear-gradient(160deg, #FFFFFF 0%, #F2F3F3 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 28px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        .header-left h1 {
+            font-size: 1.9rem;
+            font-weight: 800;
+            background: none;
+            -webkit-background-clip: border-box;
+            -webkit-text-fill-color: currentColor;
+            background-clip: border-box;
+            letter-spacing: -0.5px;
+        }
+        .header-left p {
+            color: var(--text-2);
+            font-size: 0.88rem;
+            margin-top: 4px;
+        }
+        .header img { height: 48px; opacity: 0.9; }
+
+        /* ─── LAYOUT ─── */
+        .page { max-width: 1900px; margin: 0 auto; padding: 28px 28px 60px; }
+
+        /* ─── PANELS ─── */
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 24px 28px;
+            margin-bottom: 20px;
+        }
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-2);
+            margin-bottom: 18px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .panel-title .icon { font-size: 1.1rem; }
+        .panel-title .chevron { margin-left: auto; transition: transform 0.25s; font-size: 0.7rem; color: var(--text-3); }
+        .panel-title.collapsed .chevron { transform: rotate(-90deg); }
+        .panel-body { }
+        .panel-body.hidden { display: none; }
+
+        /* ─── FORM ROW ─── */
+        .form-row {
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+        .fg { display: flex; flex-direction: column; gap: 6px; }
+        .fg label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-3);
+        }
+        input[type="date"],
+        input[type="file"],
+        select {
+            font-family: var(--cx-font);
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text);
+            background: var(--bg-input);
+            border: 1.5px solid #D5DBDB;
+            border-radius: 4px;
+            padding: 10px 14px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+        input[type="date"] { min-width: 155px; }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
+        input[type="date"]:focus,
+        input[type="file"]:focus,
+        select:focus { border-color: var(--cyan); box-shadow: 0 1px 2px rgba(0,28,36,0.10); }
+        input[type="file"] { padding: 8px 14px; }
+        input[type="file"]::file-selector-button {
+            font-family: var(--cx-font);
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 6px 14px;
+            background: linear-gradient(135deg, #0972D3, #0972D3);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        select option { background: #FFFFFF; }
+        .vdivider { width: 1px; background: var(--border); align-self: stretch; flex-shrink: 0; }
+
+        /* ─── BUTTONS ─── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 10px 22px;
+            font-family: var(--cx-font);
+            font-size: 0.85rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #0972D3, #0972D3);
+            color: #fff;
+            box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+        }
+        .btn-primary:hover { transform: none; box-shadow: 0 1px 2px rgba(0,28,36,0.10); }
+        .btn-primary:active { transform: translateY(0); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: 0 1px 2px rgba(0,28,36,0.10); }
+        .btn-ghost {
+            background: rgba(0,28,36,0.048);
+            color: var(--text-2);
+            border: 1px solid var(--border);
+        }
+        .btn-ghost:hover { background: rgba(0,28,36,0.06); color: var(--text); }
+        .btn-green {
+            background: linear-gradient(135deg, #067F68, #1D8102);
+            color: #fff;
+            box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+        }
+        .btn-green:hover { transform: none; }
+        .btn-green:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+        .btn-danger {
+            background: linear-gradient(135deg, #D13212, #D13212);
+            color: #fff;
+            box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+        }
+        .btn-danger:hover { transform: none; box-shadow: 0 1px 2px rgba(0,28,36,0.10); }
+        .btn-danger:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: 0 1px 2px rgba(0,28,36,0.10); }
+        .btn-sort {
+            background: rgba(0,28,36,0.048);
+            color: var(--text-2);
+            border: 1px solid var(--border);
+        }
+        .btn-sort:hover { background: rgba(0,28,36,0.06); color: var(--text); }
+        .btn-sort.active { background: rgba(9,114,211,0.035); border-color: rgba(9,114,211,0.35); color: var(--cyan); }
+
+        /* ─── UPLOAD PROGRESS ─── */
+        .progress-wrap { display: none; margin-top: 14px; }
+        .progress-wrap.show { display: block; }
+        .progress-label { font-size: 0.8rem; color: var(--text-2); margin-bottom: 6px; }
+        .progress-track { height: 5px; background: rgba(0,28,36,0.056); border-radius: 99px; overflow: hidden; }
+        .progress-bar   { height: 100%; background: linear-gradient(90deg, #0972D3, #0972D3); width: 0%; transition: width 0.15s; border-radius: 99px; }
+
+        .status-msg {
+            display: none;
+            margin-top: 12px;
+            padding: 10px 16px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .status-msg.ok  { background: #F2F8F0; border: 1px solid rgba(29,129,2,0.35); color: #1D8102; display: block; }
+        .status-msg.err { background: #FDF3F1; border: 1px solid rgba(209,50,18,0.35); color: #D13212; display: block; }
+        .status-msg.info { background: rgba(9,114,211,0.028); border: 1px solid rgba(9,114,211,0.35); color: var(--cyan); display: block; }
+
+        /* replace banner */
+        .replace-banner {
+            display: none;
+            margin-top: 12px;
+            padding: 10px 16px;
+            border-radius: 4px;
+            background: #FFF7E8;
+            border: 1px solid rgba(255,153,0,0.35);
+            color: var(--amber);
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+        .replace-banner.show { display: block; }
+
+        /* hint */
+        .hint {
+            margin-top: 12px;
+            padding: 10px 16px;
+            border-radius: 4px;
+            background: rgba(9,114,211,0.017);
+            border: 1px solid rgba(9,114,211,0.35);
+            font-size: 0.78rem;
+            color: var(--text-3);
+            line-height: 1.7;
+            font-family: var(--cx-font);
+        }
+        .hint strong { color: var(--cyan); }
+
+        /* ─── LEGEND BAR ─── */
+        .legend {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 14px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-bottom: 18px;
+            font-size: 0.8rem;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; }
+        .swatch {
+            width: 22px; height: 22px;
+            border-radius: 4px;
+            border: 1px solid #E9EBED;
+            flex-shrink: 0;
+        }
+        .s-green   { background: var(--fill-green);   border-color: rgba(29,129,2,0.35); }
+        .s-amber   { background: var(--fill-amber);   border-color: rgba(255,153,0,0.35); }
+        .s-red     { background: var(--fill-red);     border-color: rgba(209,50,18,0.35); }
+        .s-absent  { background: var(--fill-absent);  border-color: rgba(195,61,105,0.35); }
+        .s-holiday { background: var(--fill-holiday); border-color: rgba(9,114,211,0.35); }
+        .s-empty   { background: rgba(0,28,36,0.032); border-color: #D5DBDB; }
+        .legend-sep { width: 1px; background: var(--border); height: 20px; }
+        .legend-item span { color: var(--text-2); }
+
+        /* ─── SUMMARY CHIPS ─── */
+        .chips { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+        .chip {
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            border: 1px solid;
+        }
+        .chip-cyan   { background: rgba(9,114,211,0.035);  border-color: rgba(9,114,211,0.35);  color: var(--cyan); }
+        .chip-red    { background: #FDF3F1; border-color: rgba(209,50,18,0.35); color: var(--red); }
+        .chip-amber  { background: #FFF7E8;  border-color: rgba(255,153,0,0.35);  color: var(--amber); }
+        .chip-green  { background: #F2F8F0;  border-color: rgba(29,129,2,0.35);  color: var(--green); }
+        .chip-violet { background: rgba(9,114,211,0.035); border-color: rgba(9,114,211,0.35); color: var(--violet); }
+
+        /* ─── ENGINEER FILTER ─── */
+        .eng-filter-wrap { position: relative; min-width: 260px; }
+        .eng-filter-input {
+            width: 100%;
+            font-family: var(--cx-font);
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: var(--text);
+            background: var(--bg-input);
+            border: 1.5px solid #D5DBDB;
+            border-radius: 4px;
+            padding: 10px 14px 10px 38px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .eng-filter-input:focus { border-color: var(--cyan); }
+        .eng-filter-input::placeholder { color: var(--text-3); }
+        .eng-filter-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--text-3); pointer-events: none; }
+        .eng-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0; right: 0;
+            background: #FFFFFF;
+            border: 1.5px solid rgba(9,114,211,0.35);
+            border-radius: 4px;
+            max-height: 280px;
+            overflow-y: auto;
+            z-index: 500;
+            display: none;
+            box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+        }
+        .eng-dropdown.open { display: block; }
+        .eng-dropdown::-webkit-scrollbar { width: 4px; }
+        .eng-dropdown::-webkit-scrollbar-thumb { background: #F2F8FD; border-radius: 4px; }
+        .eng-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 14px;
+            font-size: 0.85rem;
+            color: var(--text-2);
+            cursor: pointer;
+            transition: background 0.12s;
+        }
+        .eng-option:hover { background: rgba(9,114,211,0.028); color: var(--text); }
+        .eng-option.sel   { background: #F2F8FD; color: var(--cyan); }
+        .eng-check { width: 16px; text-align: center; font-size: 12px; color: var(--cyan); }
+        .selected-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+        .stag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(9,114,211,0.035);
+            border: 1px solid rgba(9,114,211,0.35);
+            border-radius: 4px;
+            padding: 3px 10px 3px 11px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--cyan);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .stag:hover { background: #FDF3F1; border-color: rgba(209,50,18,0.35); color: var(--red); }
+
+        /* ─── MATRIX ─── */
+        .matrix-outer {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .matrix-scroll { overflow-x: auto; }
+        .matrix-scroll::-webkit-scrollbar { height: 6px; }
+        .matrix-scroll::-webkit-scrollbar-track { background: rgba(0,28,36,0.024); }
+        .matrix-scroll::-webkit-scrollbar-thumb { background: #F2F8FD; border-radius: 4px; }
+
+        table.mxt {
+            border-collapse: collapse;
+            width: 100%;
+            font-family: var(--cx-font);
+        }
+
+        /* ── WEEK HEADER ROW ── */
+        tr.wk-row td {
+            background: rgba(9,114,211,0.017);
+            border-top: 2px solid rgba(9,114,211,0.35);
+            border-bottom: 1px solid rgba(9,114,211,0.35);
+            padding: 8px 14px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--teal);
+        }
+        tr.wk-row td.wk-name-cell { color: var(--teal); border-right: 2px solid rgba(9,114,211,0.35); }
+        tr.wk-row td.wk-date-cell { text-align: center; }
+        tr.wk-row td.wk-total-cell { text-align: center; border-left: 2px solid rgba(9,114,211,0.35); color: var(--text-3); }
+
+        /* ── DATE HEADER ── */
+        tr.date-hdr th {
+            padding: 12px 8px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-align: center;
+            color: var(--text-2);
+            background: #FAFAFA;
+            border-bottom: 2px solid #E9EBED;
+            border-right: 1px solid #E9EBED;
+            white-space: nowrap;
+        }
+        tr.date-hdr th.hdr-name {
+            text-align: left;
+            padding-left: 20px;
+            min-width: 220px;
+            color: var(--cyan);
+            font-size: 0.8rem;
+            border-right: 2px solid rgba(9,114,211,0.35);
+        }
+        tr.date-hdr th.hdr-total {
+            min-width: 110px;
+            color: var(--teal);
+            border-left: 2px solid rgba(9,114,211,0.35);
+            border-right: none;
+        }
+        th.dh-dd   { display: block; font-size: 1rem; font-weight: 700; color: var(--text); line-height: 1.2; }
+        th.dh-day  { display: block; font-size: 0.68rem; font-weight: 500; color: var(--text-3); margin-top: 1px; }
+        th.hdr-date-col { min-width: 100px; }
+
+        /* ── DATA ROWS ── */
+        tr.eng-row { border-bottom: 1px solid #E9EBED; transition: background 0.15s; }
+        tr.eng-row:last-child { border-bottom: none; }
+        tr.eng-row:nth-child(even) { background: var(--bg-row-alt); }
+        tr.eng-row:hover td { filter: brightness(1.1); }
+
+        td.td-name {
+            padding: 13px 14px 13px 20px;
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: var(--text);
+            white-space: nowrap;
+            border-right: 2px solid rgba(9,114,211,0.35);
+            background: rgba(9,114,211,0.007);
+        }
+        td.td-cell {
+            padding: 11px 8px;
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 600;
+            font-family: var(--cx-font);
+            border-right: 1px solid #E9EBED;
+            vertical-align: middle;
+            cursor: default;
+            transition: filter 0.15s;
+        }
+        td.td-total {
+            padding: 11px 10px;
+            text-align: center;
+            font-size: 0.92rem;
+            font-weight: 700;
+            font-family: var(--cx-font);
+            border-left: 2px solid rgba(9,114,211,0.35);
+            vertical-align: middle;
+        }
+        .total-sub {
+            display: block;
+            font-size: 0.65rem;
+            font-weight: 500;
+            font-family: var(--cx-font);
+            margin-top: 2px;
+            opacity: 0.65;
+            letter-spacing: 0.2px;
+        }
+
+        /* cell colour states */
+        .c-ok      { background: var(--fill-green);   color: var(--txt-green); }
+        .c-amber   { background: var(--fill-amber);   color: var(--txt-amber); }
+        .c-red     { background: var(--fill-red);     color: var(--txt-red); }
+        .c-absent  { background: var(--fill-absent);  color: var(--txt-absent); font-size: 0.72rem; font-family: var(--cx-font); }
+        .c-holiday { background: var(--fill-holiday); color: var(--txt-holiday); font-size: 0.72rem; font-family: var(--cx-font); }
+        .c-empty   { background: var(--fill-empty);   color: var(--text-3); }
+        .c-wknd    { background: var(--fill-wknd);    color: rgba(22,30,45,0.1); }
+
+        /* weekly total colour */
+        .t-ok     { color: var(--txt-green); }
+        .t-amber  { color: var(--txt-amber); }
+        .t-red    { color: var(--txt-red); }
+        .t-neutral { color: var(--text-2); }
+
+        /* tooltip */
+        .has-tip { position: relative; }
+        .has-tip::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #FFFFFF;
+            border: 1px solid rgba(9,114,211,0.35);
+            border-radius: 4px;
+            padding: 8px 14px;
+            font-size: 0.75rem;
+            white-space: pre;
+            color: var(--text);
+            font-family: var(--cx-font);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s;
+            z-index: 999;
+            box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+            min-width: 140px;
+            text-align: center;
+        }
+        .has-tip:hover::after { opacity: 1; }
+
+        /* empty / loading */
+        .empty-state {
+            padding: 80px 20px;
+            text-align: center;
+            color: var(--text-3);
+        }
+        .empty-state .emo { font-size: 3rem; margin-bottom: 14px; opacity: 0.5; }
+        .empty-state p { font-size: 0.95rem; line-height: 1.7; color: var(--text-2); }
+        .empty-state p strong { color: var(--text); }
+
+        /* spinner */
+        .spin { display: inline-block; width: 13px; height: 13px; border: 2px solid #D5DBDB; border-top-color: #FFFFFF; border-radius: 50%; animation: rot 0.65s linear infinite; }
+        @keyframes rot { to { transform: rotate(360deg); } }
+
+        /* toast */
+        .toast {
+            position: fixed;
+            bottom: 24px; right: 24px;
+            background: #FFFFFF;
+            border: 1px solid rgba(29,129,2,0.35);
+            border-radius: 4px;
+            padding: 12px 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--green);
+            box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+            transform: translateY(16px);
+            opacity: 0;
+            transition: all 0.28s;
+            z-index: 9999;
+            pointer-events: none;
+            max-width: 360px;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.terr  { border-color: rgba(209,50,18,0.35); color: var(--red); }
+        .toast.tinfo { border-color: rgba(9,114,211,0.35);  color: var(--cyan); }
+
+        @media (max-width: 768px) {
+            .header { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .form-row { flex-direction: column; }
+            .vdivider { display: none; }
+            td.td-name { min-width: 160px; }
+        }
+    </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="catalistics-theme.css">
+<script src="catalistics-shell.js" defer></script>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<div class="header">
+    <div class="header-left">
+        <h1>⏱ Working Hours</h1>
+        <p>Engineer daily &amp; weekly hours matrix — upload data or view by date range</p>
+    </div>
+    <img src="assets/catalistics-logo-dark.png" data-cx-page-logo alt="Catalistics Logo">
+</div>
+
+<div class="page">
+
+    <!-- ═══ UPLOAD PANEL ═══ -->
+    <div class="panel" id="uploadPanel">
+        <div class="panel-title" id="uploadToggle" onclick="togglePanel('uploadToggle','uploadBody')">
+            <span class="icon">📤</span> Upload Journey Data
+            <span class="chevron collapsed">▼</span>
+        </div>
+        <div class="panel-body hidden" id="uploadBody">
+            <div class="form-row">
+                <div class="fg">
+                    <label for="uploadDate">Date</label>
+                    <input type="date" id="uploadDate" onchange="checkExisting()">
+                </div>
+                <div class="fg" style="flex:1;min-width:280px;">
+                    <label for="journeyFile">Journey File (.xlsx / .xls / .csv)</label>
+                    <input type="file" id="journeyFile" accept=".xlsx,.xls,.csv,.CSV">
+                </div>
+                <button class="btn btn-green" id="uploadBtn" onclick="doUpload()">
+                    <span id="uploadSpinner" style="display:none" class="spin"></span>
+                    Upload
+                </button>
+            </div>
+            <div class="replace-banner" id="replaceBanner"></div>
+            <div class="progress-wrap" id="uploadProgress">
+                <div class="progress-label" id="uploadLabel">Uploading…</div>
+                <div class="progress-track"><div class="progress-bar" id="uploadBar"></div></div>
+            </div>
+            <div class="status-msg" id="uploadMsg"></div>
+            <div class="hint">
+                <strong>Accepts .xlsx, .xls and .csv files.</strong><br>
+                Please select the date for the data you are uploading using the date picker above.<br>
+                The date will be stored as the UK format (DD/MM/YYYY) in the database based on your selection.<br>
+                <strong>A</strong> — Registration + Engineer Name (e.g. <em>YE74BUU John Smith</em> — name is everything after the first space)<br>
+                <strong>B</strong> — Start Time (e.g. <em>07:54:14</em> or <em>01/07/2026 07:54:14</em> — only the time is extracted)<br>
+                <strong>C</strong> — End Time (e.g. <em>08:46:37</em> or <em>01/07/2026 08:46:37</em> — only the time is extracted)<br>
+                <strong>K</strong> — Miles — only rows with miles &gt; 0.01 count towards earliest start / latest end
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ VIEW / FILTER PANEL ═══ -->
+    <div class="panel">
+        <div class="panel-title" style="cursor:default;margin-bottom:0;">
+            <span class="icon">🔍</span> View Hours
+        </div>
+        <div class="panel-body" style="margin-top:16px;">
+            <div class="form-row">
+                <div class="fg">
+                    <label for="dateFrom">Date From</label>
+                    <input type="date" id="dateFrom">
+                </div>
+                <div class="fg">
+                    <label for="dateTo">Date To</label>
+                    <input type="date" id="dateTo">
+                </div>
+                 <button class="btn btn-ghost" onclick="setCurrentWeek()">&#8617; Current Week</button>
+                 <button class="btn btn-ghost" onclick="setLastWorkingWeek()">&#8617; Last Working Week</button>
+                <div class="vdivider"></div>
+                <div class="fg" style="min-width:260px;">
+                    <label>Engineer Filter <span style="color:var(--text-3);font-weight:400">(leave blank = all)</span></label>
+                    <div class="eng-filter-wrap" id="engWrap">
+                        <span class="eng-filter-icon">&#128269;</span>
+                        <input type="text" class="eng-filter-input" id="engSearch" placeholder="Search engineers&hellip;"
+                            autocomplete="off" onfocus="openDrop()" oninput="filterDrop()" onblur="scheduleDrop()">
+                        <div class="eng-dropdown" id="engDrop"></div>
+                    </div>
+                    <div class="selected-tags" id="selTags"></div>
+                </div>
+                <div class="vdivider"></div>
+                <button class="btn btn-primary" id="loadBtn" onclick="loadMatrix()">
+                    <span id="loadSpin" style="display:none" class="spin"></span>
+                    <span id="loadTxt">&#128260; Load</span>
+                </button>
+                <button class="btn btn-danger" id="worstBtn" onclick="viewWorst()" style="display:none">&#128308; View Worst</button>
+                <button class="btn btn-sort" id="azBtn" onclick="resetSort()" style="display:none">&#8597; A&ndash;Z</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ LEGEND ═══ -->
+    <div class="legend">
+        <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-3)">Daily</span>
+        <div class="legend-item"><div class="swatch s-green"></div><span>≥ 7h 30m</span></div>
+        <div class="legend-item"><div class="swatch s-amber"></div><span>7h – 7h 30m</span></div>
+        <div class="legend-item"><div class="swatch s-red"></div><span>&lt; 7h</span></div>
+        <div class="legend-item"><div class="swatch s-holiday"></div><span>Bank Holiday</span></div>
+        <div class="legend-item"><div class="swatch s-empty"></div><span>No data / ≤ 1h</span></div>
+        <div class="legend-sep"></div>
+        <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-3)">Weekly</span>
+        <div class="legend-item" style="color:var(--red);font-weight:700;font-size:0.8rem;">🔴 &lt; 37.5h</div>
+        <div class="legend-item" style="color:var(--amber);font-weight:700;font-size:0.8rem;">🟡 Below <span data-cx-target="weeklyHoursAmber" data-cx-suffix="h">—</span></div>
+        <div class="legend-item" style="color:var(--green);font-weight:700;font-size:0.8rem;">✅ At or above <span data-cx-target="weeklyHoursAmber" data-cx-suffix="h">—</span></div>
+    </div>
+
+    <!-- ═══ SUMMARY CHIPS ═══ -->
+    <div class="chips" id="chips"></div>
+
+    <!-- ═══ MATRIX ═══ -->
+    <div class="matrix-outer" id="matrixOuter">
+        <div class="empty-state">
+            <div class="emo">⏱️</div>
+            <p>Upload journey data using the panel above, then<br>
+            select a date range and click <strong>Load</strong>.</p>
+        </div>
+    </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- XLSX -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Firebase -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import {
+        getFirestore, collection, getDocs, query, where,
+        addDoc, deleteDoc, writeBatch, doc, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const cfg = CATALISTICS.firebaseConfig('primary');
+    const app = initializeApp(cfg);
+    const db  = getFirestore(app);
+    window._db                = db;
+    window._collection        = collection;
+    window._getDocs           = getDocs;
+    window._query             = query;
+    window._where             = where;
+    window._addDoc            = addDoc;
+    window._deleteDoc         = deleteDoc;
+    window._writeBatch        = writeBatch;
+    window._doc               = doc;
+    window._serverTimestamp   = serverTimestamp;
+
+    window.addEventListener('load', () => {
+        setLast5WorkingDays();
+        setTimeout(() => { if (window.loadMatrix) window.loadMatrix(); }, 300);
+    });
+</script>
+
+<script>
+/* ══════════════════════════════════════════════
+   CONSTANTS
+══════════════════════════════════════════════ */
+const UK_BH = new Set([
+    '2024-01-01','2024-03-29','2024-04-01','2024-05-06','2024-05-27','2024-08-26','2024-12-25','2024-12-26',
+    '2025-01-01','2025-04-18','2025-04-21','2025-05-05','2025-05-26','2025-08-25','2025-12-25','2025-12-26',
+    '2026-01-01','2026-04-03','2026-04-06','2026-05-04','2026-05-25','2026-08-31','2026-12-25','2026-12-28',
+    '2027-01-01','2027-03-26','2027-03-29','2027-05-03','2027-05-31','2027-08-30','2027-12-27','2027-12-28'
+]);
+// Engineers to exclude entirely from the matrix
+const IGNORED_NAMES = new Set([
+    // lower-case names to leave out of the matrix, e.g. 'spare'
+]);
+function isIgnored(name) { return IGNORED_NAMES.has((name||'').toLowerCase().trim()); }
+
+/* ══════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════ */
+// fmt uses LOCAL date parts — never toISOString() which is UTC and can shift the date
+const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const toUKDate = isoDate => {
+    if (!isoDate) return '';
+    const p = isoDate.split('-');
+    return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : isoDate;
+};
+const toISODate = ukDate => {
+    if (!ukDate) return '';
+    const p = ukDate.split('/');
+    return p.length === 3 ? `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}` : ukDate;
+};
+const isSat    = ds => new Date(ds+'T12:00:00').getDay() === 6;
+const isSun    = ds => new Date(ds+'T12:00:00').getDay() === 0;
+const isWknd   = ds => isSat(ds) || isSun(ds);
+const isBH     = ds => UK_BH.has(ds);
+const isNWD    = ds => isWknd(ds) || isBH(ds);
+const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const dayName  = ds => DAY_NAMES[new Date(ds+'T12:00:00').getDay()];
+const shortDt  = ds => { const [,m,d] = ds.split('-'); return `${d}/${m}`; };
+
+function minsToH(m) {
+    if (m === null || m === undefined) return '—';
+    m = Math.round(m);
+    const h = Math.floor(m/60), mn = m%60;
+    return h > 0 ? (mn > 0 ? `${h}h ${mn}m` : `${h}h`) : `${mn}m`;
+}
+
+function esc(s) {
+    return (s||'').toString()
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;');
+}
+
+function showToast(msg, type='') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className   = 'toast show' + (type ? ' '+type : '');
+    clearTimeout(window._toastT);
+    window._toastT = setTimeout(() => t.classList.remove('show'), 4500);
+}
+
+function getISOWeek(ds) {
+    const d = new Date(ds+'T12:00:00');
+    const thu = new Date(d); thu.setDate(d.getDate() + (4 - (d.getDay()||7)));
+    const jan1 = new Date(thu.getFullYear(), 0, 1);
+    const wk = Math.ceil(((thu - jan1) / 86400000 + 1) / 7);
+    return `${thu.getFullYear()}-W${String(wk).padStart(2,'0')}`;
+}
+
+function weekLabel(dates) {
+    const wkDates = dates.filter(d => !isWknd(d));
+    if (!wkDates.length) return '';
+    const mon = wkDates[0], fri = wkDates[wkDates.length-1];
+    return `${shortDt(mon)} – ${shortDt(fri)}`;
+}
+
+/* ══════════════════════════════════════════════
+   PANEL COLLAPSE
+══════════════════════════════════════════════ */
+function togglePanel(titleId, bodyId) {
+    const title = document.getElementById(titleId);
+    const body  = document.getElementById(bodyId);
+    const chev  = title.querySelector('.chevron');
+    body.classList.toggle('hidden');
+    if (chev) chev.classList.toggle('collapsed');
+}
+window.togglePanel = togglePanel;
+
+/* ══════════════════════════════════════════════
+   DATE SHORTCUTS
+══════════════════════════════════════════════ */
+function setLast5WorkingDays() {
+    const days = [];
+    const cur = new Date(); cur.setDate(cur.getDate()-1);
+    let safety = 40;
+    while (days.length < 5 && safety-- > 0) {
+        const ds = fmt(cur);
+        if (!isNWD(ds)) days.unshift(ds);
+        cur.setDate(cur.getDate()-1);
+    }
+    if (days.length) {
+        document.getElementById('dateFrom').value = days[0];
+        document.getElementById('dateTo').value   = days[days.length-1];
+    }
+}
+
+function setCurrentWeek() {
+    const today = new Date();
+    const dow = today.getDay();
+    const sinceMon = (dow===0) ? 6 : dow-1;
+    const thisMon = new Date(today); thisMon.setDate(today.getDate()-sinceMon);
+    const thisFri = new Date(thisMon); thisFri.setDate(thisMon.getDate()+4);
+    document.getElementById('dateFrom').value = fmt(thisMon);
+    document.getElementById('dateTo').value   = fmt(thisFri);
+}
+window.setCurrentWeek = setCurrentWeek;
+
+function setLastWorkingWeek() {
+    const today = new Date();
+    const dow = today.getDay();
+    const sinceMon = (dow===0) ? 6 : dow-1;
+    const thisMon = new Date(today); thisMon.setDate(today.getDate()-sinceMon);
+    const lastMon = new Date(thisMon); lastMon.setDate(thisMon.getDate()-7);
+    const lastFri = new Date(lastMon); lastFri.setDate(lastMon.getDate()+4);
+    document.getElementById('dateFrom').value = fmt(lastMon);
+    document.getElementById('dateTo').value   = fmt(lastFri);
+}
+window.setLastWorkingWeek = setLastWorkingWeek;
+
+/* ══════════════════════════════════════════════
+   ENGINEER FILTER DROPDOWN
+══════════════════════════════════════════════ */
+let _allEng = [], _selEng = new Set(), _dropT = null;
+
+function openDrop() {
+    renderDrop(document.getElementById('engSearch').value);
+    document.getElementById('engDrop').classList.add('open');
+}
+function scheduleDrop() {
+    _dropT = setTimeout(() => document.getElementById('engDrop').classList.remove('open'), 200);
+}
+function filterDrop() {
+    renderDrop(document.getElementById('engSearch').value);
+    document.getElementById('engDrop').classList.add('open');
+}
+function renderDrop(q) {
+    q = (q||'').toLowerCase().trim();
+    const list = document.getElementById('engDrop');
+    const filt = _allEng.filter(n => !q || n.toLowerCase().includes(q));
+    if (!filt.length) { list.innerHTML = '<div class="eng-option" style="color:var(--text-3)">No engineers found</div>'; return; }
+    list.innerHTML = filt.map(n => {
+        const s = _selEng.has(n);
+        return `<div class="eng-option ${s?'sel':''}" onmousedown="toggleEng('${n.replace(/'/g,"\\'")}')">
+            <span class="eng-check">${s?'✓':''}</span>${esc(n)}
+        </div>`;
+    }).join('');
+}
+function toggleEng(name) {
+    _selEng.has(name) ? _selEng.delete(name) : _selEng.add(name);
+    renderDrop(document.getElementById('engSearch').value);
+    renderTags();
+}
+window.toggleEng = toggleEng;
+function removeEng(name) {
+    _selEng.delete(name);
+    renderDrop(document.getElementById('engSearch').value);
+    renderTags();
+}
+window.removeEng = removeEng;
+function renderTags() {
+    document.getElementById('selTags').innerHTML = [..._selEng].map(n =>
+        `<span class="stag" onclick="removeEng('${n.replace(/'/g,"\\'")}')">
+            ${esc(n)} <span>×</span>
+        </span>`
+    ).join('');
+}
+window.openDrop = openDrop;
+window.scheduleDrop = scheduleDrop;
+window.filterDrop = filterDrop;
+
+/* ══════════════════════════════════════════════
+   PARSE DATETIME from XLSX
+   Handles: "01/07/2026  07:54:14" or Excel serial numbers
+══════════════════════════════════════════════ */
+function parseDateTime(raw) {
+    if (raw === null || raw === undefined || raw === '') return null;
+    if (raw instanceof Date) return raw;
+    if (typeof raw === 'number') {
+        // Excel serial date
+        try {
+            const p = XLSX.SSF.parse_date_code(raw);
+            if (!p) return null;
+            return new Date(p.y, p.m-1, p.d, p.H, p.M, Math.floor(p.S));
+        } catch(e) { return null; }
+    }
+    const s = raw.toString().trim();
+    // DD/MM/YYYY or DD-MM-YYYY HH:MM:SS (single or multiple spaces — UK format)
+    const m1 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+    if (m1) return new Date(+m1[3], +m1[2]-1, +m1[1], +m1[4], +m1[5], m1[6]?+m1[6]:0);
+    // ISO-like YYYY-MM-DD or YYYY/MM/DD
+    const m2 = s.match(/^(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
+    if (m2) return new Date(+m2[1], +m2[2]-1, +m2[3]);
+    // Last resort — note: browser new Date() treats MM/DD so avoid for slash formats
+    const d = new Date(s);
+    return isNaN(d) ? null : d;
+}
+
+// parseDateOnly — extract YYYY-MM-DD directly from the raw cell, NEVER via Date object UTC conversion
+// This is the only safe way to get journeyDate from a DD/MM/YYYY or DD-MM-YYYY string
+function parseDateOnly(raw) {
+    if (raw === null || raw === undefined || raw === '') return null;
+    if (raw instanceof Date) return fmt(raw);
+    if (typeof raw === 'number') {
+        try {
+            const p = XLSX.SSF.parse_date_code(raw);
+            if (!p) return null;
+            return `${p.y}-${String(p.m).padStart(2,'0')}-${String(p.d).padStart(2,'0')}`;
+        } catch(e) { return null; }
+    }
+    const s = raw.toString().trim();
+    // DD/MM/YYYY or DD-MM-YYYY ...  ← UK format, read day=group1 month=group2
+    const m1 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (m1) return `${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`;
+    // YYYY-MM-DD or YYYY/MM/DD ...
+    const m2 = s.match(/^(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
+    if (m2) return `${m2[1]}-${m2[2]}-${m2[3]}`;
+    // Fallback via Date (use local parts)
+    const d = parseDateTime(raw);
+    return d ? fmt(d) : null;
+}
+
+function parseMiles(v) {
+    if (v === null || v === undefined || v === '') return 0;
+    return parseFloat(v.toString().replace(/[^\d.]/g,'')) || 0;
+}
+
+/* ══════════════════════════════════════════════
+   UPLOAD CHECK
+══════════════════════════════════════════════ */
+async function checkExisting() {
+    const dv = document.getElementById('uploadDate').value;
+    const banner = document.getElementById('replaceBanner');
+    if (!dv || !window._db) { banner.classList.remove('show'); return; }
+    try {
+        const ukDate = toUKDate(dv);
+        const snap = await window._getDocs(window._query(
+            window._collection(window._db, 'working hours'),
+            window._where('journeyDate','==', ukDate)
+        ));
+        if (snap.size > 0) {
+            banner.textContent = `⚠️ ${snap.size} existing record(s) for ${ukDate} — uploading will replace them.`;
+            banner.classList.add('show');
+        } else {
+            banner.classList.remove('show');
+        }
+    } catch(e) { banner.classList.remove('show'); }
+}
+window.checkExisting = checkExisting;
+
+/* ══════════════════════════════════════════════
+   BATCH DELETE
+══════════════════════════════════════════════ */
+async function batchDelete(dateVal) {
+    const ukDate = toUKDate(dateVal);
+    const snap = await window._getDocs(window._query(
+        window._collection(window._db, 'working hours'),
+        window._where('journeyDate','==', ukDate)
+    ));
+    if (snap.empty) return 0;
+    const docs = []; snap.forEach(d => docs.push(d));
+    for (let i = 0; i < docs.length; i += 400) {
+        const b = window._writeBatch(window._db);
+        docs.slice(i, i+400).forEach(d => b.delete(d.ref));
+        await b.commit();
+    }
+    return docs.length;
+}
+
+/* ══════════════════════════════════════════════
+   PARSE TIME ONLY
+   Extracts time component to pair with selected date
+══════════════════════════════════════════════ */
+function parseTimeOnly(raw) {
+    if (raw === null || raw === undefined || raw === '') return null;
+    if (typeof raw === 'number') {
+        try {
+            const p = XLSX.SSF.parse_date_code(raw);
+            if (!p) return null;
+            return { H: p.H, M: p.M, S: Math.floor(p.S) };
+        } catch(e) { return null; }
+    }
+    const s = raw.toString().trim();
+    const m = s.match(/(?:^|\s)(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+    if (m) {
+        return { H: +m[1], M: +m[2], S: m[3] ? +m[3] : 0 };
+    }
+    const d = new Date(s);
+    if (!isNaN(d)) {
+        return { H: d.getHours(), M: d.getMinutes(), S: d.getSeconds() };
+    }
+    return null;
+}
+
+/* ══════════════════════════════════════════════
+   DO UPLOAD  (single date - manual picker)
+══════════════════════════════════════════════ */
+async function doUpload() {
+    const dv   = document.getElementById('uploadDate').value;
+    const fi   = document.getElementById('journeyFile');
+    const msg  = document.getElementById('uploadMsg');
+    const prog = document.getElementById('uploadProgress');
+    const bar  = document.getElementById('uploadBar');
+    const lbl  = document.getElementById('uploadLabel');
+    const btn  = document.getElementById('uploadBtn');
+    const spin = document.getElementById('uploadSpinner');
+
+    msg.className = 'status-msg'; msg.textContent = '';
+    document.getElementById('replaceBanner').classList.remove('show');
+
+    if (!dv)              { msg.textContent='Please select a date.'; msg.className='status-msg err'; return; }
+    if (!fi.files.length) { msg.textContent='Please select a file.'; msg.className='status-msg err'; return; }
+
+    btn.disabled=true; spin.style.display='inline-block';
+    prog.classList.add('show'); bar.style.width='2%'; lbl.textContent='Reading file…';
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            bar.style.width='8%'; lbl.textContent='Parsing…';
+            const wb   = XLSX.read(new Uint8Array(e.target.result), { type:'array', cellDates:false });
+            const ws   = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(ws, { header:1, raw:true, defval:null });
+
+            // Find header row
+            let headerIdx = -1;
+            for (let i = 0; i < Math.min(6, rows.length); i++) {
+                const cell = (rows[i][0]||'').toString().toLowerCase();
+                if (cell.includes('registration') || cell.includes('reg')) { headerIdx = i; break; }
+            }
+            const dataStart = headerIdx > -1 ? headerIdx + 1 : 0;
+            const headers = headerIdx > -1 ? rows[headerIdx] : [];
+
+            // Selected date components
+            const [yr, mo, dy] = dv.split('-').map(Number);
+
+            // Group by PLATE
+            const byPlate = {};
+            const debugLog = [];
+            let totalRowsRead = 0;
+            let skippedIgnored = 0;
+            let skippedMiles = 0;
+            let skippedDates = 0;
+
+            for (let i = dataStart; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row || row.length < 3) continue;
+                totalRowsRead++;
+
+                const rawReg = (row[0]||'').toString().trim();
+                if (!rawReg) continue;
+
+                // plate = first word, engineer name = rest
+                const spaceIdx = rawReg.indexOf(' ');
+                const plate = (spaceIdx > -1
+                    ? rawReg.substring(0, spaceIdx)
+                    : rawReg).toUpperCase().replace(/\s/g,'');
+                const engName = spaceIdx > -1 ? rawReg.substring(spaceIdx+1).trim() : '';
+
+                if (!plate) continue;
+                if (isIgnored(engName)) {
+                    skippedIgnored++;
+                    continue;
+                }
+
+                const miles = parseMiles(row[10]); // col K
+                if (miles < 0.01) {
+                    skippedMiles++;
+                    continue;
+                }
+
+                const startTimeParts = parseTimeOnly(row[1]); // col B
+                const endTimeParts   = parseTimeOnly(row[2]); // col C
+                
+                // Keep first 5 rows for debug feedback in UI
+                if (debugLog.length < 5) {
+                    debugLog.push({
+                        rowIdx: i + 1,
+                        rawReg: rawReg,
+                        rawStart: row[1],
+                        rawEnd: row[2],
+                        rawMiles: row[10],
+                        rowLength: row.length,
+                        parsedStart: startTimeParts ? `${startTimeParts.H}:${String(startTimeParts.M).padStart(2,'0')}` : 'failed',
+                        parsedEnd: endTimeParts ? `${endTimeParts.H}:${String(endTimeParts.M).padStart(2,'0')}` : 'failed'
+                    });
+                }
+
+                if (!startTimeParts || !endTimeParts) {
+                    skippedDates++;
+                    continue;
+                }
+
+                // Construct full Date objects using selected date + parsed time parts
+                const startDt = new Date(yr, mo - 1, dy, startTimeParts.H, startTimeParts.M, startTimeParts.S);
+                const endDt   = new Date(yr, mo - 1, dy, endTimeParts.H, endTimeParts.M, endTimeParts.S);
+
+                if (!byPlate[plate]) {
+                    byPlate[plate] = {
+                        plate, engineerName: engName,
+                        firstStart: startDt, lastEnd: endDt,
+                        totalMiles: miles, rowCount: 1
+                    };
+                } else {
+                    const r = byPlate[plate];
+                    if (!r.engineerName && engName) r.engineerName = engName;
+                    if (startDt < r.firstStart) r.firstStart = startDt;
+                    if (endDt   > r.lastEnd)    r.lastEnd    = endDt;
+                    r.totalMiles += miles;
+                    r.rowCount++;
+                }
+            }
+
+            const records = Object.values(byPlate).filter(r => r.firstStart && r.lastEnd && r.lastEnd > r.firstStart);
+            
+            // Build debug output text
+            let debugHtml = `<div style="text-align:left;font-family: var(--cx-font);font-size:0.75rem;margin-top:10px;padding:8px;background: rgba(0,28,36,0.05);border-radius: 4px;max-height:220px;overflow-y:auto;">`;
+            debugHtml += `<strong>Debug Log:</strong><br>`;
+            debugHtml += `Total rows parsed: ${totalRowsRead}<br>`;
+            debugHtml += `Skipped (Ignored Names): ${skippedIgnored}<br>`;
+            debugHtml += `Skipped (Miles &lt; 0.01): ${skippedMiles}<br>`;
+            debugHtml += `Skipped (Invalid Date/Time): ${skippedDates}<br><br>`;
+            
+            if (headers.length > 0) {
+                debugHtml += `<strong>Headers Detected:</strong><br>`;
+                headers.forEach((h, idx) => {
+                    const letter = String.fromCharCode(65 + idx);
+                    debugHtml += `Col ${letter} (index ${idx}): "${h || ''}"<br>`;
+                });
+                debugHtml += `<br>`;
+            }
+
+            debugHtml += `<strong>First 5 rows details:</strong><br>`;
+            debugLog.forEach(d => {
+                debugHtml += `Row ${d.rowIdx}: Reg="${d.rawReg}" | Miles=${d.rawMiles} (Cols: ${d.rowLength}) | StartTime="${d.rawStart}" -&gt; Parsed: "${d.parsedStart}" | EndTime="${d.rawEnd}" -&gt; Parsed: "${d.parsedEnd}"<br>`;
+            });
+            debugHtml += `</div>`;
+
+            if (!records.length) {
+                msg.innerHTML = `No valid rows found. Check column layouts. <br>${debugHtml}`;
+                msg.className = 'status-msg err';
+                prog.classList.remove('show'); btn.disabled=false; spin.style.display='none';
+                return;
+            }
+
+            bar.style.width='20%';
+            lbl.textContent = `Clearing old records for ${toUKDate(dv)}…`;
+            const deleted = await batchDelete(dv);
+
+            bar.style.width='40%';
+            lbl.textContent = `Uploading ${records.length} engineer record(s)…`;
+            
+            let saved = 0;
+            for (const r of records) {
+                const durationMins = (r.lastEnd - r.firstStart) / 60000;
+                await window._addDoc(window._collection(window._db, 'working hours'), {
+                    journeyDate:  toUKDate(dv),
+                    queryDate:    dv,
+                    plate:        r.plate,
+                    engineerName: r.engineerName,
+                    startTime:    r.firstStart.toISOString(),
+                    endTime:      r.lastEnd.toISOString(),
+                    durationMins: Math.round(durationMins),
+                    totalMiles:   parseFloat(r.totalMiles.toFixed(2)),
+                    rowCount:     r.rowCount,
+                    uploadedAt:   window._serverTimestamp()
+                });
+                saved++;
+                bar.style.width = (40 + Math.round((saved/records.length)*50)) + '%';
+            }
+
+            bar.style.width='100%'; lbl.textContent='✓ Done';
+            msg.textContent = `✓ ${saved} engineer record(s) saved for ${toUKDate(dv)}${deleted > 0 ? ` (replaced ${deleted} old records)` : ''}.`;
+            msg.className = 'status-msg ok';
+            fi.value = '';
+            showToast(`✓ Uploaded ${saved} records for ${toUKDate(dv)}`);
+            setTimeout(() => prog.classList.remove('show'), 2500);
+
+            // Auto-refresh if uploaded date is in the view range
+            const dvFrom = document.getElementById('dateFrom').value;
+            const dvTo   = document.getElementById('dateTo').value;
+            if (dvFrom && dvTo && dv >= dvFrom && dv <= dvTo) loadMatrix();
+
+        } catch(err) {
+            console.error(err);
+            msg.textContent = 'Error: ' + err.message;
+            msg.className = 'status-msg err';
+            prog.classList.remove('show');
+            showToast('Upload failed: '+err.message, 'terr');
+        } finally {
+            btn.disabled = false; spin.style.display = 'none';
+        }
+    };
+    reader.readAsArrayBuffer(fi.files[0]);
+}
+window.doUpload = doUpload;
+
+/* ══════════════════════════════════════════════
+   LOAD MATRIX
+══════════════════════════════════════════════ */
+async function loadMatrix() {
+    const dvFrom = document.getElementById('dateFrom').value;
+    const dvTo   = document.getElementById('dateTo').value;
+    if (!dvFrom || !dvTo) { showToast('Please select a date range.','terr'); return; }
+    if (dvFrom > dvTo)    { showToast('From date must be ≤ To date.','terr'); return; }
+
+    const btn  = document.getElementById('loadBtn');
+    const spin = document.getElementById('loadSpin');
+    const txt  = document.getElementById('loadTxt');
+    btn.disabled=true; spin.style.display='inline-block'; txt.textContent='Loading…';
+    document.getElementById('matrixOuter').innerHTML = '<div class="empty-state"><div class="emo">⏳</div><p>Fetching data from Firestore…</p></div>';
+    document.getElementById('chips').innerHTML = '';
+
+    try {
+        // ── Fetch working hours (query on queryDate which is chronologically indexable YYYY-MM-DD)
+        const hSnap = await window._getDocs(window._query(
+            window._collection(window._db, 'working hours'),
+            window._where('queryDate','>=', dvFrom),
+            window._where('queryDate','<=', dvTo)
+        ));
+
+        // hoursByDate[date][plate] = { engineerName, startTime(Date), endTime(Date), durationMins }
+        const hoursByDate = {};
+        const plateToName = {};
+
+        hSnap.forEach(d => {
+            const r = d.data();
+            if (isIgnored(r.engineerName)) return; // skip excluded names
+            // If queryDate is not present, derive it from journeyDate (converting UK to ISO if needed)
+            const ds = r.queryDate || (r.journeyDate && r.journeyDate.includes('/') ? toISODate(r.journeyDate) : r.journeyDate);
+            if (!ds) return;
+            if (!hoursByDate[ds]) hoursByDate[ds] = {};
+            hoursByDate[ds][r.plate] = {
+                engineerName: r.engineerName || '',
+                startTime:    r.startTime ? new Date(r.startTime) : null,
+                endTime:      r.endTime   ? new Date(r.endTime)   : null,
+                durationMins: r.durationMins || 0
+            };
+            if (r.engineerName && r.plate) plateToName[r.plate] = r.engineerName;
+        });
+
+        // ── Collect all engineer names (from working hours only — no attendance)
+        const allNames = new Set();
+        Object.values(hoursByDate).forEach(dayMap => {
+            Object.entries(dayMap).forEach(([plate, info]) => {
+                const name = info.engineerName || plateToName[plate] || '';
+                if (name && !isIgnored(name)) allNames.add(name);
+            });
+        });
+
+        // Update dropdown
+        _allEng = [...allNames].sort((a,b) => a.localeCompare(b));
+        renderDrop(document.getElementById('engSearch').value);
+
+        // Filter
+        const engList = (_selEng.size > 0)
+            ? _allEng.filter(n => _selEng.has(n))
+            : _allEng;
+
+        if (!engList.length) {
+            document.getElementById('matrixOuter').innerHTML =
+                '<div class="empty-state"><div class="emo">👷</div><p>No engineer data found for this date range.<br>Upload a journey file first.</p></div>';
+            return;
+        }
+
+        // ── Build plate lookup per engineer (from working hours only)
+        const nameToPlates = {};
+        Object.entries(plateToName).forEach(([plate, name]) => {
+            if (!nameToPlates[name]) nameToPlates[name] = new Set();
+            nameToPlates[name].add(plate);
+        });
+
+        // ── Build all dates in range
+        const allDates = [];
+        { const c = new Date(dvFrom+'T12:00:00'); const e = new Date(dvTo+'T12:00:00');
+          while (c<=e) { allDates.push(fmt(c)); c.setDate(c.getDate()+1); } }
+
+        // ── Group dates by ISO week
+        const weekGroups = {};
+        allDates.forEach(ds => {
+            const wk = getISOWeek(ds);
+            if (!weekGroups[wk]) weekGroups[wk] = [];
+            weekGroups[wk].push(ds);
+        });
+        const sortedWeeks = Object.keys(weekGroups).sort();
+
+        // ── Per-engineer, per-date cell data
+        const cellData = {}; // cellData[name][ds] = { status, minutes, tipStart, tipEnd, att }
+
+        engList.forEach(name => {
+            cellData[name] = {};
+            const plates = nameToPlates[name] ? [...nameToPlates[name]] : [];
+
+            allDates.forEach(ds => {
+                if (isWknd(ds)) {
+                    cellData[name][ds] = { status:'wknd' };
+                    return;
+                }
+                if (isBH(ds)) {
+                    cellData[name][ds] = { status:'holiday', tip:'Bank Holiday' };
+                    return;
+                }
+
+                // Find hours from working hours collection
+                let firstStart = null, lastEnd = null;
+                for (const plate of plates) {
+                    if (hoursByDate[ds] && hoursByDate[ds][plate]) {
+                        const rec = hoursByDate[ds][plate];
+                        if (rec.startTime && (!firstStart || rec.startTime < firstStart)) firstStart = rec.startTime;
+                        if (rec.endTime   && (!lastEnd   || rec.endTime   > lastEnd))   lastEnd   = rec.endTime;
+                    }
+                }
+
+                if (!firstStart || !lastEnd || lastEnd <= firstStart) {
+                    cellData[name][ds] = { status:'empty' };
+                    return;
+                }
+
+                const mins = (lastEnd - firstStart) / 60000;
+
+                // ≤ 60 minutes — treat as no meaningful data
+                if (mins <= 60) {
+                    cellData[name][ds] = { status:'empty' };
+                    return;
+                }
+
+                const status = mins < 7*60 ? 'red' : mins < 7.5*60 ? 'amber' : 'ok';
+                const s  = firstStart.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+                const e2 = lastEnd.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+                cellData[name][ds] = { status, minutes: mins, tip:`${s} → ${e2}
+${minsToH(Math.round(mins))}` };
+            });
+        });
+
+        // ── Store state for re-rendering (sort without re-fetch)
+        const workDays = allDates.filter(d => !isNWD(d)).length;
+        window._mxState = { engList, cellData, weekGroups, sortedWeeks, allDates, workDays };
+
+        // ── Summary chips
+        let cntRed=0, cntAmber=0, cntOk=0;
+        engList.forEach(name => allDates.forEach(ds => {
+            const c = cellData[name][ds];
+            if (!c) return;
+            if (c.status==='red')        cntRed++;
+            else if (c.status==='amber') cntAmber++;
+            else if (c.status==='ok')    cntOk++;
+        }));
+        document.getElementById('chips').innerHTML = `
+            <span class="chip chip-cyan">👷 ${engList.length} Engineer${engList.length!==1?'s':''}</span>
+            <span class="chip chip-cyan">📅 ${workDays} Working Day${workDays!==1?'s':''}</span>
+            ${cntOk    ? `<span class="chip chip-green">✅ ${cntOk} Good</span>` : ''}
+            ${cntAmber ? `<span class="chip chip-amber">🟡 ${cntAmber} Short days</span>` : ''}
+            ${cntRed   ? `<span class="chip chip-red">🔴 ${cntRed} Low days</span>` : ''}
+        `;
+
+        // Show sort buttons
+        document.getElementById('worstBtn').style.display = 'inline-flex';
+        document.getElementById('azBtn').style.display    = 'inline-flex';
+
+        renderMatrix('alpha');
+        showToast(`✓ Loaded ${engList.length} engineers · ${workDays} working days`);
+
+    } catch(err) {
+        console.error(err);
+        document.getElementById('matrixOuter').innerHTML =
+            `<div class="empty-state"><p style="color:var(--red)">Error: ${esc(err.message)}</p></div>`;
+        showToast('Failed: '+err.message, 'terr');
+    } finally {
+        btn.disabled=false; spin.style.display='none'; txt.textContent='🔄 Load';
+    }
+}
+window.loadMatrix = loadMatrix;
+
+/* ══════════════════════════════════════════════
+   RENDER MATRIX  — single flat table, one row per engineer
+   sortMode: 'alpha' | 'worst'
+══════════════════════════════════════════════ */
+function renderMatrix(sortMode) {
+    const st = window._mxState;
+    if (!st) return;
+    const { cellData, weekGroups, sortedWeeks, allDates } = st;
+
+    // ── Compute per-engineer totals for sorting
+    // avgMinsPerDay = totalMins / daysWithRealData  (target set in Storage & Settings)
+    const engStats = st.engList.map(name => {
+        let totalMins = 0, daysWorked = 0;
+        allDates.forEach(ds => {
+            const c = cellData[name][ds];
+            if (c && (c.status==='ok'||c.status==='amber'||c.status==='red')) {
+                totalMins += c.minutes;
+                daysWorked++;
+            }
+        });
+        const avgMins = daysWorked > 0 ? totalMins / daysWorked : 0;
+        return { name, totalMins, daysWorked, avgMins };
+    });
+
+    // Sort
+    const sorted = sortMode === 'worst'
+        ? [...engStats].sort((a,b) => {
+            // no data goes to bottom; otherwise ascending avg (worst first)
+            if (a.daysWorked === 0 && b.daysWorked === 0) return a.name.localeCompare(b.name);
+            if (a.daysWorked === 0) return 1;
+            if (b.daysWorked === 0) return -1;
+            return a.avgMins - b.avgMins;
+          })
+        : [...engStats].sort((a,b) => a.name.localeCompare(b.name));
+
+    // Button states
+    document.getElementById('worstBtn').classList.toggle('active', sortMode === 'worst');
+    document.getElementById('azBtn').classList.toggle('active', sortMode === 'alpha');
+
+    // ── Build ONE header row spanning all weeks
+    let html = `<div class="matrix-scroll"><table class="mxt"><thead>`;
+
+    // Date header
+    html += `<tr class="date-hdr"><th class="hdr-name">Engineer</th>`;
+    sortedWeeks.forEach(wk => {
+        const dates = weekGroups[wk];
+        dates.forEach(ds => {
+            const nwd = isNWD(ds);
+            html += `<th class="hdr-date-col" style="${nwd ? 'opacity:0.4' : ''}">
+                <span class="dh-dd">${shortDt(ds)}</span>
+                <span class="dh-day">${dayName(ds)}</span>
+            </th>`;
+        });
+        html += `<th class="hdr-total" style="border-left: 2px solid rgba(9,114,211,0.35)">${weekLabel(dates)}</th>`;
+    });
+    // Avg/day column header
+    html += `<th class="hdr-total" style="border-left: 2px solid rgba(9,114,211,0.35);color:var(--violet)">Avg/Day<span class="dh-day" style="display:block;font-size:0.65rem;opacity:0.7">target ${CATALISTICS.targetLabel('workingDayHours','h')}</span></th>`;
+    html += `</tr></thead><tbody>`;
+
+    // ── One row per engineer
+    sorted.forEach(({ name, totalMins, daysWorked, avgMins }) => {
+        html += `<tr class="eng-row"><td class="td-name">${esc(name)}</td>`;
+
+        sortedWeeks.forEach(wk => {
+            const dates = weekGroups[wk];
+            let weekMins = 0, hasData = false;
+
+            dates.forEach(ds => {
+                const cell = cellData[name][ds] || { status:'empty' };
+                switch (cell.status) {
+                    case 'ok':
+                        html += `<td class="td-cell c-ok has-tip" data-tip="${esc(cell.tip)}">${minsToH(Math.round(cell.minutes))}</td>`;
+                        weekMins += cell.minutes; hasData = true; break;
+                    case 'amber':
+                        html += `<td class="td-cell c-amber has-tip" data-tip="${esc(cell.tip)}">${minsToH(Math.round(cell.minutes))}</td>`;
+                        weekMins += cell.minutes; hasData = true; break;
+                    case 'red':
+                        html += `<td class="td-cell c-red has-tip" data-tip="${esc(cell.tip)}">${minsToH(Math.round(cell.minutes))}</td>`;
+                        weekMins += cell.minutes; hasData = true; break;
+                    case 'holiday':
+                        html += `<td class="td-cell c-holiday has-tip" data-tip="Bank Holiday">🏖️</td>`;
+                        break;
+                    case 'wknd':
+                        html += `<td class="td-cell c-wknd">–</td>`;
+                        break;
+                    default:
+                        html += `<td class="td-cell c-empty">–</td>`;
+                }
+            });
+
+            // Weekly total for this week
+            let totClass = 't-neutral', totLabel = '–', totIcon = '';
+            if (hasData) {
+                totLabel = minsToH(Math.round(weekMins));
+                if (weekMins < CATALISTICS.target('weeklyHoursRed')*60)     { totClass='t-red';   totIcon=' 🔴'; }
+                else if (weekMins < CATALISTICS.target('weeklyHoursAmber')*60)  { totClass='t-amber'; totIcon=' 🟡'; }
+                else                        { totClass='t-ok';    totIcon=' ✅'; }
+            }
+            const pct = hasData && CATALISTICS.hasTarget('weeklyHoursAmber') ? Math.min(100, Math.round((weekMins/(CATALISTICS.target('weeklyHoursAmber')*60))*100)) : null;
+            html += `<td class="td-total ${totClass}" style="border-left: 2px solid rgba(9,114,211,0.35)">
+                ${totLabel}${totIcon}
+                ${pct !== null ? `<span class="total-sub">${pct}% of ${CATALISTICS.targetLabel('weeklyHoursAmber','h')}</span>` : ''}
+            </td>`;
+        });
+
+        // Avg/day column
+        const TARGET = CATALISTICS.target('workingDayHours') * 60; // expected minutes per day (Storage & Settings)
+        let avgClass = 't-neutral', avgLabel = '–', avgIcon = '';
+        if (daysWorked > 0) {
+            avgLabel = minsToH(Math.round(avgMins));
+            if (avgMins < 7*60)       { avgClass='t-red';   avgIcon=' 🔴'; }
+            else if (avgMins < TARGET){ avgClass='t-amber'; avgIcon=' 🟡'; }
+            else                      { avgClass='t-ok';    avgIcon=' ✅'; }
+        }
+        const avgPct = daysWorked > 0 && TARGET > 0 ? Math.min(100, Math.round((avgMins/TARGET)*100)) : null;
+        html += `<td class="td-total ${avgClass}" style="border-left: 2px solid rgba(9,114,211,0.35)">
+            ${avgLabel}${avgIcon}
+            ${avgPct !== null ? `<span class="total-sub">${daysWorked}d · ${avgPct}% of ${CATALISTICS.targetLabel('workingDayHours','h')}</span>` : ''}
+        </td>`;
+
+        html += `</tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+    document.getElementById('matrixOuter').innerHTML = html;
+}
+window.renderMatrix = renderMatrix;
+
+function viewWorst() { renderMatrix('worst'); }
+window.viewWorst = viewWorst;
+
+function resetSort() { renderMatrix('alpha'); }
+window.resetSort = resetSort;
+</script>
+</body>
+</html>

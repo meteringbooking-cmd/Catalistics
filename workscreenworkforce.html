@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+<!-- Catalistics: shared settings (storage, targets, links). Must load before the page scripts. -->
+<script src="catalistics-settings.js" onerror="this.remove()"></script>
+<script src="catalistics-config.js"></script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Workforce Dashboard · Catalistics</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <style>
+    :root {
+      --bg: #F2F3F3;
+      --card: #FFFFFF;
+      --accent: #0972D3;
+      --text: #161E2D;
+      --text-dim: #545B64;
+      --border: #D5DBDB;
+      --error: #D13212;
+      --core: #0972D3;
+      --sp: #0972D3;
+      --echo: #0972D3;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: var(--cx-font);
+      background: #F2F3F3;
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+    }
+    aside {
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      padding: 2rem 1.5rem;
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      overflow-y: auto;
+    }
+    .logo {
+      font-size: 1.6rem;
+      font-weight: 700;
+      background: none;
+      -webkit-background-clip: border-box;
+      -webkit-text-fill-color: currentColor;
+      margin-bottom: 2.5rem;
+      text-align: center;
+    }
+    h2 {
+      font-size: 1.1rem;
+      color: var(--text-dim);
+      margin: 1.8rem 0 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    .period-btn, .team-btn {
+      display: block;
+      width: 100%;
+      padding: 0.95rem 1.2rem;
+      margin: 0.4rem 0;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      font-size: 0.97rem;
+    }
+    .period-btn:hover, .team-btn:hover {
+      background: rgba(9,114,211,0.028);
+      border-color: var(--accent);
+    }
+    .period-btn.active {
+      background: var(--accent);
+      color: #161E2D;
+      border-color: var(--accent);
+      box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+    }
+    .team-btn.active {
+      background: #F2F8FD;
+      color: #161E2D;
+      font-weight: 600;
+      border-color: var(--accent);
+    }
+    main {
+      padding: 2.5rem 3rem;
+      max-width: 1600px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    h1 {
+      font-size: 2.1rem;
+      font-weight: 700;
+      background: none;
+      -webkit-background-clip: border-box;
+      -webkit-text-fill-color: currentColor;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      padding: 1.8rem 2rem;
+      box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+    }
+    #chartContainer {
+      height: 580px;
+      position: relative;
+      margin-top: 1.5rem;
+    }
+    .loading, .error-msg {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+      font-size: 1.2rem;
+      background: #FFFFFF;
+      border-radius: 4px;
+      text-align: center;
+      padding: 2rem;
+      z-index: 10;
+    }
+    .error-msg {
+      color: var(--error) !important;
+      font-weight: 500;
+    }
+    @media (max-width: 1100px) {
+      body { grid-template-columns: 1fr; }
+      aside { height: auto; position: relative; border-right: none; border-bottom: 1px solid var(--border); }
+      main { padding: 2rem 1.5rem; }
+    }
+  </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="catalistics-theme.css">
+<script src="catalistics-shell.js" defer></script>
+</head>
+<body>
+
+<aside>
+  <div class="logo">Workforce</div>
+
+  <h2>Time Period</h2>
+  <button class="period-btn active" data-period="6months">6 months (bar)</button>
+  <button class="period-btn" data-period="year">Year to date (bar)</button>
+
+  <h2>Category</h2>
+  <button class="team-btn active" data-category="engineers">Engineers</button>
+  <button class="team-btn" data-category="backoffice">Back Office</button>
+
+  <h2>Location (Engineers)</h2>
+  <button class="team-btn active" data-location="all">All Locations</button>
+  <button class="team-btn" data-location="CORE">CORE</button>
+  <button class="team-btn" data-location="Delta">Delta</button>
+  <button class="team-btn" data-location="ECHO">ECHO</button>
+
+  <h2>Team Leader</h2>
+  <button class="team-btn active" data-team="all">All Teams</button>
+  <button class="team-btn" data-team="Team Leader 1">Team Leader 1</button>
+  <button class="team-btn" data-team="Team Leader 2">Team Leader 2</button>
+  <button class="team-btn" data-team="Team Leader 2 - Scot">Team Leader 2 - Scot</button>  
+  <button class="team-btn" data-team="Team Leader 3">Team Leader 3</button>
+  <button class="team-btn" data-team="FTL 4">FTL 4</button>
+</aside>
+
+<main>
+  <header>
+    <h1>Workforce Statistics</h1>
+  </header>
+
+  <div class="card">
+    <div id="chartContainer">
+      <div class="loading">Loading workforce data…</div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = CATALISTICS.firebaseConfig('secondary');
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const ctx = document.createElement('canvas');
+  document.querySelector('#chartContainer').appendChild(ctx);
+  let chart = null;
+
+  const periods = {
+    "6months": { label: "Last 6 months", daysBack: 180, color: "#3759CE", type: "bar" },
+    "year":    { label: "Year to date",  daysBack: 365, color: "#8456CE", type: "bar" },
+  };
+
+  let currentPeriod = "6months";
+  let currentCategory = "engineers";
+  let currentLocation = "all";
+  let currentTeam = "all";
+
+  function parseDateDDMMYYYY(dateStr) {
+    if (!dateStr) return null;
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      return new Date(parts[2], parts[1] - 1, parts[0]);
+    }
+    const dashParts = dateStr.split('-');
+    if (dashParts.length === 3) {
+      return new Date(dashParts[0], dashParts[1] - 1, dashParts[2]);
+    }
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? null : date;
+  }
+
+  async function fetchAndAggregateWorkforce(periodKey, category, location, team) {
+    const cfg = periods[periodKey];
+    const today = new Date();
+    const start = new Date(today);
+    start.setDate(start.getDate() - cfg.daysBack);
+
+    const snapshot = await getDocs(collection(db, "employees"));
+    
+    const allMonths = [];
+    const currentMonth = new Date(start);
+    currentMonth.setDate(1);
+    
+    while (currentMonth <= today) {
+      const monthKey = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
+      allMonths.push(monthKey);
+      currentMonth.setMonth(currentMonth.getMonth() + 1);
+    }
+
+    const monthMap = {};
+    allMonths.forEach(monthKey => {
+      monthMap[monthKey] = { core: 0, Delta: 0, echo: 0, backOffice: 0, total: 0 };
+    });
+
+    snapshot.forEach(doc => {
+      const d = doc.data();
+      const teamLeader = d['Team Leader'] || d.teamLeader;
+      const employeeLocation = d.Location || d.location;
+      const startDateStr = d.startDate || d['Start Date'];
+      const leaveDateStr = d.leaveDate;
+
+      const isBackOffice = teamLeader === 'Back Office';
+      if (category === 'engineers' && isBackOffice) return;
+      if (category === 'backoffice' && !isBackOffice) return;
+      if (category === 'engineers' && location !== 'all' && employeeLocation !== location) return;
+      if (team !== 'all' && teamLeader !== team) return;
+
+      const startDate = parseDateDDMMYYYY(startDateStr);
+      const leaveDate = leaveDateStr ? parseDateDDMMYYYY(leaveDateStr) : null;
+
+      allMonths.forEach(monthKey => {
+        const [year, month] = monthKey.split('-');
+        const monthDate = new Date(year, parseInt(month) - 1, 1);
+        const wasActive = startDate && startDate <= monthDate && (!leaveDate || leaveDate > monthDate);
+
+        if (wasActive) {
+          if (isBackOffice) monthMap[monthKey].backOffice++;
+          else {
+            if (employeeLocation === 'CORE') monthMap[monthKey].core++;
+            else if (employeeLocation === 'Delta') monthMap[monthKey].Delta++;
+            else if (employeeLocation === 'ECHO') monthMap[monthKey].echo++;
+          }
+          monthMap[monthKey].total++;
+        }
+      });
+    });
+
+    const labels = allMonths.map(monthKey => {
+      const [year, month] = monthKey.split('-');
+      const date = new Date(year, parseInt(month) - 1);
+      return date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+    });
+
+    return { labels, monthMap, allMonths };
+  }
+
+  async function updateChart() {
+    const container = document.querySelector('#chartContainer');
+    container.innerHTML = '<div class="loading">Loading workforce data…</div>';
+
+    try {
+      const data = await fetchAndAggregateWorkforce(currentPeriod, currentCategory, currentLocation, currentTeam);
+      const cfg = periods[currentPeriod];
+
+      container.innerHTML = '';
+      container.appendChild(ctx);
+
+      if (chart) chart.destroy();
+
+      const categoryLabel = currentCategory === 'engineers' ? 'Engineers' : 'Back Office';
+      const teamLabel = currentTeam === 'all' ? 'All Teams' : currentTeam;
+
+      let datasets = [];
+
+      if (currentCategory === 'engineers' && currentTeam !== 'all') {
+        datasets = [
+          {
+            label: 'CORE',
+            data: data.allMonths.map(m => data.monthMap[m].core),
+            backgroundColor: 'rgba(55,89,206,0.75)',
+            borderColor: '#3759CE',
+            borderWidth: 1,
+            borderRadius: 6,
+          },
+          {
+            label: 'Delta',
+            data: data.allMonths.map(m => data.monthMap[m].Delta),
+            backgroundColor: 'rgba(132,86,206,0.75)',
+            borderColor: '#8456CE',
+            borderWidth: 1,
+            borderRadius: 6,
+          },
+          {
+            label: 'ECHO',
+            data: data.allMonths.map(m => data.monthMap[m].echo),
+            backgroundColor: 'rgba(132,86,206,0.75)',
+            borderColor: '#8456CE',
+            borderWidth: 1,
+            borderRadius: 6,
+          }
+        ];
+      } else {
+        datasets = [{
+          label: `${categoryLabel} (${teamLabel})`,
+          data: data.allMonths.map(m => data.monthMap[m].total),
+          backgroundColor: 'rgba(55,89,206,0.75)',
+          borderColor: cfg.color,
+          borderWidth: 1,
+          borderRadius: 6,
+        }];
+      }
+
+      chart = new Chart(ctx, {
+        type: cfg.type,
+        data: { labels: data.labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: {
+              display: true,
+              text: `${cfg.label} – ${categoryLabel}${currentTeam !== 'all' && currentCategory === 'engineers' ? ' by Location' : ''}`,
+              color: '#879596',
+              font: { size: 18, weight: '600' },
+              padding: { bottom: 20 }
+            },
+            legend: { 
+              display: datasets.length > 1,
+              labels: { color: '#879596', font: { size: 14 } } 
+            },
+            datalabels: {
+              anchor: 'end',
+              align: 'top',
+              offset: 4,
+              color: '#879596',
+              font: { weight: 'bold', size: 20 },
+              formatter: (value) => value > 0 ? value : '',
+              textShadowColor: 'rgba(0,0,0,0.8)',
+              textShadowBlur: 4
+            }
+          },
+          scales: {
+            x: {
+              stacked: datasets.length > 1,
+              ticks: { color: '#687078', font: { size: 11 }, padding: 8 },
+              grid: { color: '#232F3E' }
+            },
+            y: {
+              stacked: datasets.length > 1,
+              beginAtZero: true,
+              ticks: { color: '#687078', stepSize: 5 },
+              grid: { color: '#232F3E' }
+            }
+          }
+        },
+        plugins: [ChartDataLabels]
+      });
+    } catch (err) {
+      console.error("Error:", err);
+      let msg = err.message || "Unknown error";
+      container.innerHTML = `
+        <div class="error-msg">
+          ${msg}<br><br>
+          <small>Press F12 → Console for details</small>
+        </div>`;
+    }
+  }
+
+  document.querySelectorAll('.period-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentPeriod = btn.dataset.period;
+      updateChart();
+    });
+  });
+
+  document.querySelectorAll('[data-category]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-category]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentCategory = btn.dataset.category;
+      updateChart();
+    });
+  });
+
+  document.querySelectorAll('[data-location]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-location]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentLocation = btn.dataset.location;
+      updateChart();
+    });
+  });
+
+  document.querySelectorAll('[data-team]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-team]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentTeam = btn.dataset.team;
+      updateChart();
+    });
+  });
+
+  updateChart();
+</script>
+
+</body>
+</html>

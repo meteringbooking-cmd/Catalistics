@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<!-- Catalistics: shared settings (storage, targets, links). Must load before the page scripts. -->
+<script src="catalistics-settings.js" onerror="this.remove()"></script>
+<script src="catalistics-config.js"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Engineers · Catalistics</title>
+    <style>
+        :root {
+            --bg: #F2F3F3;
+            --surface: #FFFFFF;
+            --border: #D5DBDB;
+            --border-hi: #D5DBDB;
+            --amber: #FF9900;
+            --cyan: #067F68;
+            --text:      #E8ECHO4;
+            --text-mid: #545B64;
+            --text-dim: #3D5168;
+            --danger: #D13212;
+            --green: #1D8102;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { height: 100%; }
+
+        body {
+            font-family: var(--cx-font);
+            background: #F2F3F3; color: var(--text);
+            min-height: 100vh; display: flex; flex-direction: column;
+        }
+
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background-image: linear-gradient(#FFF7E8 1px, transparent 1px),
+                linear-gradient(90deg, #FFF7E8 1px, transparent 1px);
+            background-size: 40px 40px; pointer-events: none; z-index: 0;
+        }
+        body::after {
+            content: ''; position: fixed; top: -200px; left: 50%;
+            transform: translateX(-50%); width: 800px; height: 600px;
+            background: radial-gradient(ellipse, #FFF7E8 0%, transparent 70%);
+            pointer-events: none; z-index: 0;
+        }
+
+        /* ── TOPBAR ── */
+        .topbar {
+            position: relative; z-index: 10;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 48px; height: 64px;
+            border-bottom: 1px solid var(--border);
+            background: #F2F3F3; backdrop-filter: blur(12px);
+            animation: fadeDown 0.6s ease both;
+        }
+        .topbar-brand { display: flex; align-items: center; gap: 12px; }
+        .brand-mark {
+            width: 32px; height: 32px; background: var(--amber);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        }
+        .brand-name {
+            font-family: var(--cx-font);
+            font-size: 1.25rem; font-weight: 700;
+            letter-spacing: 0.12em; text-transform: uppercase; color: var(--text);
+        }
+        .brand-name span { color: var(--amber); }
+        .back-link {
+            font-family: var(--cx-font); font-size: 0.72rem;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: var(--text-mid); text-decoration: none;
+            border: 1px solid var(--border); padding: 0.35rem 0.8rem;
+            border-radius: 4px; transition: all 0.2s;
+        }
+        .back-link:hover { color: var(--amber); border-color: var(--amber); }
+
+        /* ── AUTH GATE ── */
+        .auth-gate {
+            position: relative; z-index: 10;
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            padding: 40px;
+        }
+        .auth-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 4px; padding: 48px;
+            width: 100%; max-width: 400px;
+            animation: fadeUp 0.6s ease both;
+        }
+        .auth-label {
+            font-family: var(--cx-font); font-size: 0.65rem;
+            letter-spacing: 0.18em; text-transform: uppercase;
+            color: var(--amber); margin-bottom: 16px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .auth-label::before { content: ''; display: block; width: 20px; height: 1px; background: var(--amber); }
+        .auth-title {
+            font-family: var(--cx-font);
+            font-size: 1.8rem; font-weight: 900;
+            text-transform: uppercase; color: var(--text); margin-bottom: 8px;
+        }
+        .auth-sub { font-size: 0.85rem; color: var(--text-mid); margin-bottom: 28px; }
+
+        .field-label {
+            font-family: var(--cx-font); font-size: 0.65rem;
+            letter-spacing: 0.15em; text-transform: uppercase;
+            color: var(--text-dim); margin-bottom: 8px; display: block;
+        }
+        .field-input {
+            width: 100%; background: var(--bg); border: 1px solid var(--border);
+            color: var(--text); padding: 0.75rem 1rem; border-radius: 4px;
+            font-family: var(--cx-font); font-size: 0.9rem;
+            transition: border 0.2s; margin-bottom: 20px;
+        }
+        .field-input:focus { outline: none; border-color: var(--amber); }
+        .auth-error {
+            font-family: var(--cx-font); font-size: 0.75rem;
+            color: var(--danger); margin-top: -12px; margin-bottom: 16px; display: none;
+        }
+        .auth-error.show { display: block; }
+
+        .btn-primary {
+            width: 100%; background: var(--amber); border: none; color: #080C14;
+            padding: 0.75rem 1.5rem; border-radius: 4px;
+            font-family: var(--cx-font);
+            font-size: 0.9rem; font-weight: 700; letter-spacing: 0.08em;
+            text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-primary:hover { background: #FF9900; transform: none; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* ── MAIN ── */
+        .hero {
+            position: relative; z-index: 10;
+            padding: 48px 48px 32px;
+            animation: fadeUp 0.7s ease 0.1s both;
+        }
+        .hero-label {
+            font-family: var(--cx-font); font-size: 0.7rem;
+            letter-spacing: 0.18em; text-transform: uppercase;
+            color: var(--amber); margin-bottom: 12px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .hero-label::before { content: ''; display: block; width: 24px; height: 1px; background: var(--amber); }
+        .hero-title {
+            font-family: var(--cx-font);
+            font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 900;
+            line-height: 0.95; text-transform: uppercase; color: var(--text); margin-bottom: 12px;
+        }
+        .hero-title em { font-style: normal; color: var(--amber); }
+        .hero-sub { font-size: 0.95rem; font-weight: 300; color: var(--text-mid); }
+
+        .content { position: relative; z-index: 10; padding: 0 48px 48px; flex: 1; }
+
+        /* ── STATS ── */
+        .stats-row {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px; margin-bottom: 20px;
+            animation: fadeUp 0.6s ease 0.15s both;
+        }
+        .stat-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 4px; padding: 16px 20px;
+        }
+        .stat-label {
+            font-family: var(--cx-font); font-size: 0.62rem;
+            letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim);
+            margin-bottom: 6px;
+        }
+        .stat-value {
+            font-family: var(--cx-font);
+            font-size: 2rem; font-weight: 900; color: var(--amber);
+        }
+
+        /* ── FILTER BAR ── */
+        .filter-bar {
+            display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 4px; padding: 16px 20px; margin-bottom: 20px;
+            animation: fadeUp 0.6s ease 0.2s both;
+        }
+        .search-input {
+            flex: 1; min-width: 200px;
+            background: var(--bg); border: 1px solid var(--border);
+            color: var(--text); padding: 0.55rem 1rem; border-radius: 4px;
+            font-family: var(--cx-font); font-size: 0.82rem; transition: border 0.2s;
+        }
+        .search-input::placeholder { color: var(--text-dim); }
+        .search-input:focus { outline: none; border-color: var(--amber); }
+        .filter-select {
+            background: var(--bg); border: 1px solid var(--border);
+            color: var(--text); padding: 0.55rem 1rem; border-radius: 4px;
+            font-family: var(--cx-font); font-size: 0.82rem;
+            min-width: 180px; cursor: pointer; transition: border 0.2s;
+        }
+        .filter-select:focus { outline: none; border-color: var(--amber); }
+        .filter-select option { background: var(--surface); }
+
+        /* ── TABLE ── */
+        .table-wrap {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 4px; overflow: hidden;
+            animation: fadeUp 0.6s ease 0.3s both;
+        }
+        .table-scroll { overflow-x: auto; }
+
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            background: #FAFAFA; padding: 12px 16px; text-align: left;
+            font-family: var(--cx-font); font-size: 0.62rem;
+            letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim);
+            border-bottom: 1px solid var(--border);
+            cursor: pointer; user-select: none; white-space: nowrap;
+            transition: color 0.2s;
+        }
+        thead th:hover { color: var(--amber); }
+        thead th:first-child { padding-left: 24px; }
+
+        tbody tr {
+            border-bottom: 1px solid rgba(28,42,58,0.6);
+            cursor: pointer; transition: background 0.15s;
+        }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: #FFF7E8; }
+
+        td { padding: 13px 16px; vertical-align: middle; font-size: 0.85rem; }
+        td:first-child { padding-left: 24px; }
+
+        .eng-name { font-weight: 600; color: var(--text); }
+        .sort-arrow { font-size: 0.7rem; margin-left: 4px; color: var(--amber); }
+
+        .leader-badge {
+            display: inline-block; background: rgba(9,114,211,0.035);
+            border: 1px solid rgba(9,114,211,0.35); color: var(--cyan);
+            padding: 0.2rem 0.6rem; border-radius: 4px;
+            font-family: var(--cx-font); font-size: 0.7rem;
+        }
+
+        .contract-badge {
+            display: inline-block; padding: 0.2rem 0.6rem; border-radius: 4px;
+            font-family: var(--cx-font); font-size: 0.7rem; font-weight: 600;
+            white-space: nowrap;
+        }
+        .contract-core { background: #FFF7E8; border: 1px solid rgba(255,153,0,0.35); color: var(--amber); }
+        .contract-sp  { background: #F0F8F6;  border: 1px solid rgba(6,127,104,0.35); color: var(--cyan); }
+        .contract-echo { background: #FDF3F1;   border: 1px solid rgba(209,50,18,0.35); color: var(--danger); }
+        .contract-charlie { background: #F2F8F0; border: 1px solid rgba(29,129,2,0.35); color: var(--green); }
+        .contract-na  { color: var(--text-dim); font-style: italic; font-size: 0.78rem; }
+
+        .email-text { color: var(--text-mid); font-family: var(--cx-font); font-size: 0.75rem; }
+        .no-value   { color: var(--text-dim); font-style: italic; font-size: 0.78rem; }
+
+        .pw-text {
+            font-family: var(--cx-font); font-size: 0.75rem;
+            background: rgba(0,28,36,0.04); border: 1px solid var(--border);
+            padding: 0.2rem 0.55rem; border-radius: 4px; color: var(--text-mid);
+        }
+        .date-text { color: var(--text-dim); font-family: var(--cx-font); font-size: 0.73rem; }
+
+        /* ── EMPTY/LOADING ── */
+        .state-cell {
+            padding: 60px; text-align: center;
+            color: var(--text-dim); font-family: var(--cx-font); font-size: 0.82rem;
+        }
+        .spinner {
+            display: inline-block; width: 20px; height: 20px;
+            border: 2px solid var(--border); border-top-color: var(--amber);
+            border-radius: 50%; animation: spin 0.7s linear infinite;
+            margin-right: 10px; vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── MODAL ── */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; z-index: 100;
+            background: rgba(0,7,22,0.55); backdrop-filter: blur(4px);
+            align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+
+        .modal {
+            background: var(--surface); border: 1px solid var(--border-hi);
+            border-radius: 4px; padding: 36px; width: 100%; max-width: 480px;
+            animation: fadeUp 0.3s ease both;
+        }
+        .modal-header { margin-bottom: 28px; }
+        .modal-name {
+            font-family: var(--cx-font);
+            font-size: 1.5rem; font-weight: 900;
+            text-transform: uppercase; color: var(--text); margin-bottom: 4px;
+        }
+        .modal-sub { font-size: 0.82rem; color: var(--text-dim); }
+
+        .modal-field { margin-bottom: 18px; }
+
+        .btn-row { display: flex; gap: 10px; margin-top: 28px; }
+        .btn-cancel {
+            flex: 1; background: transparent; border: 1px solid var(--border-hi);
+            color: var(--text-mid); padding: 0.65rem 1rem; border-radius: 4px;
+            font-family: var(--cx-font);
+            font-size: 0.85rem; font-weight: 600; letter-spacing: 0.06em;
+            text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-cancel:hover { border-color: var(--text-mid); color: var(--text); }
+        .btn-modal-save {
+            flex: 2; background: var(--amber); border: none; color: #080C14;
+            padding: 0.65rem 1rem; border-radius: 4px;
+            font-family: var(--cx-font);
+            font-size: 0.85rem; font-weight: 700; letter-spacing: 0.06em;
+            text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-modal-save:hover { background: #FF9900; }
+        .btn-modal-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .pw-group { position: relative; }
+        .btn-gen {
+            position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+            background: #FFF7E8; border: 1px solid rgba(255,153,0,0.35);
+            color: var(--amber); padding: 0.25rem 0.65rem; border-radius: 4px;
+            font-family: var(--cx-font); font-size: 0.68rem; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-gen:hover { background: #FFF7E8; }
+        .pw-note { font-family: var(--cx-font); font-size: 0.65rem; color: var(--text-dim); margin-top: 6px; }
+
+        /* ── ANIMATIONS ── */
+        @keyframes fadeDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeUp   { from { opacity: 0; transform: translateY(16px); }  to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 768px) {
+            .topbar, .hero, .content { padding-left: 20px; padding-right: 20px; }
+            .hero { padding-top: 32px; }
+        }
+    </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="catalistics-theme.css">
+<script src="catalistics-shell.js" defer></script>
+</head>
+<body>
+
+    <header class="topbar">
+        <div class="topbar-brand">
+            <div class="brand-mark"></div>
+            <div class="brand-name">Catalistics</div>
+        </div>
+        <a href="index.html" class="back-link">← Home</a>
+    </header>
+
+    <div class="auth-gate" id="authGate">
+        <div class="auth-card">
+            <div class="auth-label">Secure Access</div>
+            <div class="auth-title">Authentication<br>Required</div>
+            <div class="auth-sub">Enter the access password to view the engineer database.</div>
+            <label class="field-label" for="accessPassword">Password</label>
+            <input type="password" id="accessPassword" class="field-input" placeholder="Enter password…" autofocus>
+            <div class="auth-error" id="authError">Incorrect password. Please try again.</div>
+            <button class="btn-primary" onclick="checkPassword()">Unlock Access →</button>
+        </div>
+    </div>
+
+    <div id="mainView" style="display:none; flex:1; flex-direction:column;">
+
+        <section class="hero">
+            <div class="hero-label">Engineer Database</div>
+            <h1 class="hero-title">View <em>All</em><br>Engineers</h1>
+            <p class="hero-sub">Click any row to update engineer details.</p>
+        </section>
+
+        <main class="content">
+
+            <div class="stats-row" id="statsRow" style="display:none;">
+                <div class="stat-card">
+                    <div class="stat-label">Total</div>
+                    <div class="stat-value" id="totalEngineers">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Leaders</div>
+                    <div class="stat-value" id="totalTeamLeaders">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Core - Alpha</div>
+                    <div class="stat-value" id="count-core-alpha">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Delta - Alpha</div>
+                    <div class="stat-value" id="count-sp-alpha">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">ECHO - Alpha</div>
+                    <div class="stat-value" id="count-echo-alpha">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Core - Bravo</div>
+                    <div class="stat-value" id="count-core-bravo">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Charlie</div>
+                    <div class="stat-value" id="count-charlie">0</div>
+                </div>
+            </div>
+
+            <div class="filter-bar">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search engineers or email…" oninput="filterEngineers()">
+                <select class="filter-select" id="teamLeaderFilter" onchange="filterEngineers()">
+                    <option value="all">All Team Leaders</option>
+                </select>
+            </div>
+
+            <div class="table-wrap">
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable('name')">Engineer <span class="sort-arrow" id="sort-name"></span></th>
+                                <th onclick="sortTable('teamLeader')">Team Leader <span class="sort-arrow" id="sort-teamLeader"></span></th>
+                                <th onclick="sortTable('email')">Email <span class="sort-arrow" id="sort-email"></span></th>
+                                <th onclick="sortTable('contract')">Contract <span class="sort-arrow" id="sort-contract"></span></th>
+                                <th>Password</th>
+                                <th onclick="sortTable('date')">Date Added <span class="sort-arrow" id="sort-date"></span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="engineersBody">
+                            <tr><td colspan="6" class="state-cell"><span class="spinner"></span>Loading engineers…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-name" id="modalName">Engineer</div>
+                <div class="modal-sub">Update engineer details</div>
+            </div>
+
+            <div class="modal-field">
+                <label class="field-label" for="emailInput">Email Address</label>
+                <input type="email" id="emailInput" class="field-input" placeholder="engineer@example.com" style="margin-bottom:0;">
+            </div>
+
+            <div class="modal-field">
+                <label class="field-label" for="contractSelect">Contract</label>
+                <select id="contractSelect" class="filter-select" style="width:100%; margin-bottom:0;">
+                    <option value="">Not specified</option>
+                    <option value="Core - Alpha">Core - Alpha</option>
+                    <option value="Delta - Alpha">Delta - Alpha</option>
+                    <option value="ECHO - Alpha">ECHO - Alpha</option>
+                    <option value="Core - Bravo">Core - Bravo</option>
+                    <option value="Charlie">Charlie</option>
+                </select>
+            </div>
+
+            <div class="modal-field">
+                <label class="field-label" for="passwordInput">Password</label>
+                <div class="pw-group">
+                    <input type="text" id="passwordInput" class="field-input" placeholder="Enter password…" style="margin-bottom:0; padding-right:90px;">
+                    <button class="btn-gen" onclick="generatePassword()">Generate</button>
+                </div>
+                <div class="pw-note">Leave blank to keep existing password unchanged.</div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn-modal-save" id="saveBtn" onclick="saveEngineerDetails()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Password comes from Storage & Settings (Security). With sign-in off the page opens straight away.
+
+        window.checkPassword = function () {
+            const val = document.getElementById('accessPassword').value;
+            if (CATALISTICS.checkSecret('adminPassword', val)) {
+                document.getElementById('authGate').style.display = 'none';
+                const mv = document.getElementById('mainView');
+                mv.style.display = 'flex';
+                mv.style.flexDirection = 'column';
+                loadEngineers();
+            } else {
+                document.getElementById('authError').classList.add('show');
+                document.getElementById('accessPassword').value = '';
+                document.getElementById('accessPassword').focus();
+            }
+        };
+
+        document.getElementById('accessPassword').addEventListener('keydown', e => {
+            if (e.key === 'Enter') window.checkPassword();
+        });
+        if (!CATALISTICS.requireSignIn()) setTimeout(() => window.checkPassword(), 0);
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = CATALISTICS.firebaseConfig('primary');
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let allEngineers = [], filteredEngineers = [];
+        let sortColumn = 'name', sortDirection = 'asc', currentEngineerId = null;
+
+        // Helper to update the stat tiles
+        function updateStats() {
+            document.getElementById('totalEngineers').textContent = allEngineers.length;
+            document.getElementById('totalTeamLeaders').textContent = [...new Set(allEngineers.map(e => e.teamLeader))].length;
+            
+            document.getElementById('count-core-alpha').textContent = allEngineers.filter(e => e.contract === 'Core - Alpha').length;
+            document.getElementById('count-sp-alpha').textContent = allEngineers.filter(e => e.contract === 'Delta - Alpha').length;
+            document.getElementById('count-echo-alpha').textContent = allEngineers.filter(e => e.contract === 'ECHO - Alpha').length;
+            document.getElementById('count-core-bravo').textContent = allEngineers.filter(e => e.contract === 'Core - Bravo').length;
+            document.getElementById('count-charlie').textContent = allEngineers.filter(e => e.contract === 'Charlie').length;
+        }
+
+        window.generatePassword = function () {
+            const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
+            document.getElementById('passwordInput').value =
+                Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+        };
+
+        async function loadEngineers() {
+            try {
+                const snap = await getDocs(collection(db, "engineers"));
+                allEngineers = [];
+                snap.forEach(d => allEngineers.push({ id: d.id, ...d.data() }));
+
+                const leaders = [...new Set(allEngineers.map(e => e.teamLeader))].sort();
+                const sel = document.getElementById('teamLeaderFilter');
+                leaders.forEach(tl => {
+                    const o = document.createElement('option');
+                    o.value = o.textContent = tl;
+                    sel.appendChild(o);
+                });
+
+                updateStats();
+                document.getElementById('statsRow').style.display = 'grid';
+
+                filteredEngineers = [...allEngineers];
+                displayEngineers();
+            } catch (e) {
+                console.error(e);
+                document.getElementById('engineersBody').innerHTML =
+                    '<tr><td colspan="6" class="state-cell">Error loading engineers.</td></tr>';
+            }
+        }
+
+        function displayEngineers() {
+            const tbody = document.getElementById('engineersBody');
+
+            if (!filteredEngineers.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="state-cell">No engineers found.</td></tr>';
+                return;
+            }
+
+            const sorted = [...filteredEngineers].sort((a, b) => {
+                const map = {
+                    name: e => e.engineerName.toLowerCase(),
+                    teamLeader: e => e.teamLeader.toLowerCase(),
+                    email: e => (e.email || '').toLowerCase(),
+                    contract: e => (e.contract || '').toLowerCase(),
+                    date: e => (e.createdAt?.seconds || 0)
+                };
+                const av = map[sortColumn]?.(a) ?? '';
+                const bv = map[sortColumn]?.(b) ?? '';
+                return sortDirection === 'asc' ? (av < bv ? -1 : av > bv ? 1 : 0) : (av > bv ? -1 : av < bv ? 1 : 0);
+            });
+
+            document.querySelectorAll('.sort-arrow').forEach(el => el.textContent = '');
+            const ind = document.getElementById(`sort-${sortColumn}`);
+            if (ind) ind.textContent = sortDirection === 'asc' ? '▲' : '▼';
+
+            tbody.innerHTML = sorted.map(eng => {
+                const date = eng.createdAt
+                    ? new Date(eng.createdAt.seconds * 1000).toLocaleDateString('en-GB')
+                    : '—';
+                const emailHtml = eng.email
+                    ? `<span class="email-text">${eng.email}</span>`
+                    : `<span class="no-value">No email</span>`;
+                
+                const contractCls = {
+                    'Core - Alpha': 'contract-core',
+                    'Delta - Alpha': 'contract-sp',
+                    'ECHO - Alpha': 'contract-echo',
+                    'Core - Bravo': 'contract-core',
+                    'Charlie': 'contract-charlie'
+                }[eng.contract] || '';
+
+                const contractHtml = eng.contract
+                    ? `<span class="contract-badge ${contractCls}">${eng.contract}</span>`
+                    : `<span class="no-value">Not set</span>`;
+                const pwHtml = eng.password
+                    ? `<span class="pw-text">${eng.password}</span>`
+                    : `<span class="no-value">Not set</span>`;
+
+                return `<tr onclick="openModal(${JSON.stringify(eng).replace(/"/g, '&quot;')})">
+                    <td class="eng-name">${eng.engineerName}</td>
+                    <td><span class="leader-badge">${eng.teamLeader}</span></td>
+                    <td>${emailHtml}</td>
+                    <td>${contractHtml}</td>
+                    <td>${pwHtml}</td>
+                    <td class="date-text">${date}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        window.openModal = function (engineer) {
+            currentEngineerId = engineer.id;
+            document.getElementById('modalName').textContent = engineer.engineerName;
+            document.getElementById('emailInput').value = engineer.email || '';
+            document.getElementById('contractSelect').value = engineer.contract || '';
+            document.getElementById('passwordInput').value = engineer.password || '';
+            document.getElementById('modalOverlay').classList.add('open');
+        };
+
+        window.closeModal = function () {
+            document.getElementById('modalOverlay').classList.remove('open');
+            currentEngineerId = null;
+        };
+
+        window.closeModalOutside = function (e) {
+            if (e.target === document.getElementById('modalOverlay')) window.closeModal();
+        };
+
+        window.saveEngineerDetails = async function () {
+            const saveBtn = document.getElementById('saveBtn');
+            saveBtn.disabled = true;
+            const orig = saveBtn.textContent;
+            saveBtn.textContent = 'Saving…';
+
+            try {
+                const email = document.getElementById('emailInput').value.trim();
+                const contract = document.getElementById('contractSelect').value;
+                const password = document.getElementById('passwordInput').value.trim();
+
+                const update = { email: email || null, contract: contract || null };
+                if (password) update.password = password;
+
+                await updateDoc(doc(db, "engineers", currentEngineerId), update);
+
+                const idx = allEngineers.findIndex(e => e.id === currentEngineerId);
+                if (idx !== -1) {
+                    allEngineers[idx].email = email || null;
+                    allEngineers[idx].contract = contract || null;
+                    if (password) allEngineers[idx].password = password;
+                }
+
+                updateStats(); // Update dashboard tiles
+                window.closeModal();
+                filterEngineers();
+            } catch (e) {
+                console.error(e);
+                alert('Error saving changes. Please try again.');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = orig;
+            }
+        };
+
+        window.sortTable = function (col) {
+            sortDirection = sortColumn === col ? (sortDirection === 'asc' ? 'desc' : 'asc') : 'asc';
+            sortColumn = col;
+            displayEngineers();
+        };
+
+        window.filterEngineers = function () {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const leader = document.getElementById('teamLeaderFilter').value;
+            filteredEngineers = allEngineers.filter(e =>
+                (leader === 'all' || e.teamLeader === leader) &&
+                (!search || e.engineerName.toLowerCase().includes(search) || (e.email || '').toLowerCase().includes(search))
+            );
+            displayEngineers();
+        };
+    </script>
+</body>
+</html>

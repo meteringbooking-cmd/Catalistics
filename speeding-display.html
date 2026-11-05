@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<!-- Catalistics: shared settings (storage, targets, links). Must load before the page scripts. -->
+<script src="catalistics-settings.js" onerror="this.remove()"></script>
+<script src="catalistics-config.js"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speeding Incidents - Dashboard · Catalistics</title>
+    <style>
+        
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--cx-font);
+            background: #F2F3F3;
+            min-height: 100vh;
+            padding: 40px 20px;
+            color: #161E2D;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Background glowing accent */
+        body::before {
+            content: '';
+            position: absolute;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 400px;
+            background: radial-gradient(circle, #F2F8FD 0%, rgba(9,114,211,0) 70%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            background: #FFFFFF;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid #E9EBED;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+            max-width: 98%;
+            width: 98%;
+            margin: 0 auto;
+            padding: 32px 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-icon {
+            width: 64px;
+            height: 64px;
+            background: rgba(9,114,211,0.035);
+            border: 1px solid rgba(9,114,211,0.35);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0972D3;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+        }
+
+        .logo {
+            font-size: 2.25em;
+            font-weight: 800;
+            background: none;
+            -webkit-background-clip: border-box;
+            -webkit-text-fill-color: currentColor;
+            background-clip: border-box;
+            letter-spacing: -0.03em;
+        }
+
+        .subtitle {
+            color: #545B64;
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-end;
+            background: rgba(0,28,36,0.016);
+            border: 1px solid #E9EBED;
+            border-radius: 4px;
+            padding: 24px;
+            margin-bottom: 32px;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #545B64;
+            font-weight: 600;
+            font-size: 0.88em;
+            letter-spacing: 0.02em;
+        }
+
+        .filter-group select, 
+        .filter-group input {
+            width: 100%;
+            padding: 12px 14px;
+            background: #F2F3F3;
+            border: 1px solid #D5DBDB;
+            border-radius: 4px;
+            color: #161E2D;
+            font-size: 0.95em;
+            transition: all 0.2s ease;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+            font-family: inherit;
+        }
+
+        .filter-group select:focus, 
+        .filter-group input:focus {
+            outline: none;
+            border-color: #0972D3;
+            box-shadow: 0 1px 2px rgba(0,28,36,0.10), inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #0972D3 0%, #0972D3 100%);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            height: 46px;
+        }
+
+        .btn:hover {
+            transform: none;
+            box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.secondary {
+            background: rgba(0,28,36,0.04);
+            border: 1px solid #E9EBED;
+            color: #545B64;
+            box-shadow: none;
+        }
+
+        .btn.secondary:hover {
+            background: rgba(0,28,36,0.06);
+            color: #161E2D;
+            border-color: #D5DBDB;
+        }
+
+        /* Summary Cards */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .card {
+            background: #F2F3F3;
+            border: 1px solid #E9EBED;
+            border-radius: 4px;
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: none;
+            box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+        }
+
+        .card-content {
+            z-index: 1;
+        }
+
+        .card .value {
+            font-size: 2.1em;
+            font-weight: 800;
+            color: #161E2D;
+            line-height: 1.1;
+        }
+
+        .card .label {
+            font-size: 0.85em;
+            color: #545B64;
+            margin-top: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .card-icon {
+            color: #4B5563;
+            opacity: 0.65;
+            transition: color 0.3s ease;
+        }
+
+        .card:hover .card-icon {
+            color: var(--accent-color);
+        }
+
+        /* Left Indicators for Cards */
+        .card-indigo { border-left: 4px solid #0972D3; --accent-color: #0972D3; }
+        .card-amber { border-left: 4px solid #FF9900; --accent-color: #FF9900; }
+        .card-rose { border-left: 4px solid #D13212; --accent-color: #D13212; }
+        .card-violet { border-left: 4px solid #0972D3; --accent-color: #0972D3; }
+        .card-emerald { border-left: 4px solid #067F68; --accent-color: #1D8102; }
+
+        /* Tabs styling */
+        .tabs {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid #D5DBDB;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            color: #545B64;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover {
+            color: #545B64;
+        }
+
+        .tab-btn.active {
+            color: #0972D3;
+            border-bottom-color: #0972D3;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        #chartTab.active {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        @media (min-width: 1024px) {
+            #chartTab.active {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* Tables */
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid #D5DBDB;
+            border-radius: 4px;
+            background: #F2F3F3;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: transparent;
+            font-size: 0.9em;
+        }
+
+        thead {
+            background: #FAFAFA;
+            border-bottom: 2px solid #D5DBDB;
+        }
+
+        th {
+            padding: 16px 12px;
+            text-align: left;
+            font-weight: 700;
+            color: #545B64;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.15s ease;
+        }
+
+        th:hover {
+            background: #FAFAFA;
+            color: #545B64;
+        }
+
+        th.sorted::after {
+            content: ' \2193';
+            color: #545B64;
+            font-weight: bold;
+        }
+
+        th.sorted-asc::after {
+            content: ' \2191';
+            color: #545B64;
+            font-weight: bold;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #D5DBDB;
+            color: #545B64;
+        }
+
+        tbody tr:hover {
+            background-color: rgba(0,28,36,0.008);
+        }
+
+        /* Custom Badges (Pills) */
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.82em;
+            font-weight: 700;
+        }
+
+        .pill::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .pill.zero {
+            background: #F0F8F6;
+            color: #1D8102;
+            border: 1px solid rgba(6,127,104,0.35);
+        }
+        .pill.zero::before { background: #067F68; }
+
+        .pill.low {
+            background: #FFF7E8;
+            color: #8D6605;
+            border: 1px solid rgba(255,153,0,0.35);
+        }
+        .pill.low::before { background: #FF9900; }
+
+        .pill.high {
+            background: #FDF3F1;
+            color: #D13212;
+            border: 1px solid rgba(209,50,18,0.35);
+        }
+        .pill.high::before { background: #D13212; }
+
+        /* Empty states */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #545B64;
+            background: #F2F3F3;
+            border: 1px dashed #D5DBDB;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .empty-state .icon {
+            font-size: 3.5em;
+            line-height: 1;
+            filter: grayscale(0.5);
+        }
+
+        .empty-state p {
+            font-size: 1.05em;
+            font-weight: 500;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #0972D3;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 1.05em;
+        }
+
+        .loading::before {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(9,114,211,0.35);
+            border-top-color: #0972D3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Charts */
+        .chart-wrap {
+            background: #F2F3F3;
+            border: 1px solid #E9EBED;
+            border-radius: 4px;
+            padding: 24px;
+            margin-bottom: 28px;
+            box-shadow: 0 1px 2px rgba(0,28,36,0.10);
+        }
+
+        .chart-wrap h3 {
+            margin-bottom: 20px;
+            color: #161E2D;
+            font-size: 1.1em;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            border-left: 3px solid #0972D3;
+            padding-left: 10px;
+        }
+
+        canvas {
+            max-height: 350px;
+            width: 100% !important;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 32px;
+            color: #545B64;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95em;
+            transition: color 0.2s ease;
+            width: 100%;
+        }
+
+        .back-link:hover {
+            color: #0972D3;
+        }
+
+        /* Scrollbars */
+        .table-wrap::-webkit-scrollbar {
+            height: 8px;
+        }
+        .table-wrap::-webkit-scrollbar-track {
+            background: #F2F3F3;
+            border-bottom-right-radius: 4px;
+            border-bottom-left-radius: 4px;
+        }
+        .table-wrap::-webkit-scrollbar-thumb {
+            background: #FFFFFF;
+            border-radius: 4px;
+        }
+        .table-wrap::-webkit-scrollbar-thumb:hover {
+            background: #FFFFFF;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 24px; }
+            .filters { padding: 18px; gap: 16px; }
+            .filter-group { min-width: 100%; }
+            .btn { width: 100%; }
+            table { font-size: 0.78em; }
+            th, td { padding: 8px 6px; }
+        }
+    </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="catalistics-theme.css">
+<script src="catalistics-shell.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            </div>
+            <h1 class="logo">Speeding Incidents</h1>
+            <p class="subtitle">Weekly Performance Dashboard</p>
+        </div>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label for="filterWeek">Week Commencing</label>
+                <select id="filterWeek"><option value="">All Weeks</option></select>
+            </div>
+            <div class="filter-group">
+                <label for="filterLeader">Team Leader</label>
+                <select id="filterLeader"><option value="">All Team Leaders</option></select>
+            </div>
+            <div class="filter-group">
+                <label for="filterEngineer">Search Engineer</label>
+                <input type="text" id="filterEngineer" placeholder="Type a name...">
+            </div>
+            <button class="btn secondary" id="resetFiltersBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M16 3h5v5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 21H3v-5"/></svg>
+                Reset
+            </button>
+        </div>
+
+        <div class="summary-cards">
+            <div class="card card-indigo">
+                <div class="card-content">
+                    <div class="value" id="statTotalIncidents">0</div>
+                    <div class="label">Total Incidents</div>
+                </div>
+                <div class="card-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+                </div>
+            </div>
+            <div class="card card-amber">
+                <div class="card-content">
+                    <div class="value" id="statEngineersInvolved">0</div>
+                    <div class="label">Engineers Involved</div>
+                </div>
+                <div class="card-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+            </div>
+            <div class="card card-rose">
+                <div class="card-content">
+                    <div class="value" id="statHighestSpeed">0</div>
+                    <div class="label">Highest Over Limit (Prev Week)</div>
+                </div>
+                <div class="card-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+            </div>
+            <div class="card card-violet">
+                <div class="card-content">
+                    <div class="value" id="statAvgPerEngineer">0</div>
+                    <div class="label">Avg Incidents / Eng</div>
+                </div>
+                <div class="card-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                </div>
+            </div>
+            <div class="card card-emerald">
+                <div class="card-content">
+                    <div class="value" id="statAvgWeeklyPerEngineer">0</div>
+                    <div class="label">Avg Weekly Incidents/Eng</div>
+                </div>
+                <div class="card-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="tableTab">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+                Table View
+            </button>
+            <button class="tab-btn" data-tab="chartTab">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                Analytics Charts
+            </button>
+        </div>
+
+        <div id="tableTab" class="tab-content active">
+            <div id="tableArea">
+                <div class="loading">Loading speeding data…</div>
+            </div>
+        </div>
+
+        <div id="chartTab" class="tab-content">
+            <div class="chart-wrap">
+                <h3>Weekly Performance Trend (Avg Incidents / Driver)</h3>
+                <canvas id="incidentRateTrendChart"></canvas>
+            </div>
+            <div class="chart-wrap">
+                <h3>Incidents Trend by Week</h3>
+                <canvas id="trendChart"></canvas>
+            </div>
+            <div class="chart-wrap">
+                <h3 id="bandChartTitle">Incidents by Speed Limit Band</h3>
+                <canvas id="bandChart"></canvas>
+            </div>
+            <div class="chart-wrap">
+                <h3 id="leaderChartTitle">Incidents by Team Leader</h3>
+                <canvas id="leaderChart"></canvas>
+            </div>
+        </div>
+
+        <a href="index.html" class="back-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            Back to Home
+        </a>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = CATALISTICS.firebaseConfig('primary');
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const COLLECTION_NAME = "speeding";
+
+        let allRecords = [];
+        let sortField = 'weekCommencing';
+        let sortDir = 'desc';
+        let bandChart, leaderChart, trendChart, incidentRateTrendChart;
+
+        onSnapshot(collection(db, COLLECTION_NAME), (snapshot) => {
+            allRecords = [];
+            snapshot.forEach(doc => allRecords.push({ id: doc.id, ...doc.data() }));
+            populateFilterOptions();
+            renderAll();
+        }, (err) => {
+            document.getElementById('tableArea').innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Error loading data: ${err.message}</p></div>`;
+        });
+
+        function populateFilterOptions() {
+            const weekSelect = document.getElementById('filterWeek');
+            const leaderSelect = document.getElementById('filterLeader');
+            const currentWeek = weekSelect.value;
+            const currentLeader = leaderSelect.value;
+
+            const weeks = [...new Set(allRecords.map(r => r.weekCommencing).filter(Boolean))].sort().reverse();
+            const leaders = [...new Set(allRecords.map(r => r.teamLeader).filter(Boolean))].sort();
+
+            weekSelect.innerHTML = '<option value="">All Weeks</option>' + weeks.map(w => `<option value="${w}">${formatDate(w)}</option>`).join('');
+            leaderSelect.innerHTML = '<option value="">All Team Leaders</option>' + leaders.map(l => `<option value="${l}">${l}</option>`).join('');
+
+            weekSelect.value = currentWeek;
+            leaderSelect.value = currentLeader;
+        }
+
+        function formatDate(dstr) {
+            if (!dstr) return '';
+            const d = new Date(dstr + 'T00:00:00');
+            return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        function getFiltered() {
+            const week = document.getElementById('filterWeek').value;
+            const leader = document.getElementById('filterLeader').value;
+            const engineerSearch = document.getElementById('filterEngineer').value.trim().toLowerCase();
+
+            return allRecords.filter(r => {
+                if (week && r.weekCommencing !== week) return false;
+                if (leader && r.teamLeader !== leader) return false;
+                if (engineerSearch && !(r.engineer || '').toLowerCase().includes(engineerSearch)) return false;
+                return true;
+            });
+        }
+
+        function incidentPillClass(n) {
+            if (!n) return 'zero';
+            if (n <= 2) return 'low';
+            return 'high';
+        }
+
+        function renderTable() {
+            const data = getFiltered();
+            const area = document.getElementById('tableArea');
+
+            if (data.length === 0) {
+                area.innerHTML = `<div class="empty-state"><div class="icon">🚦</div><p>No speeding records match the current filters.</p></div>`;
+                return;
+            }
+
+            const sorted = [...data].sort((a, b) => {
+                let av = a[sortField], bv = b[sortField];
+                if (typeof av === 'string') av = av.toLowerCase();
+                if (typeof bv === 'string') bv = bv.toLowerCase();
+                if (av < bv) return sortDir === 'asc' ? -1 : 1;
+                if (av > bv) return sortDir === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            const columns = [
+                { key: 'weekCommencing', label: 'Week Commencing', fmt: formatDate },
+                { key: 'teamLeader', label: 'Team Leader' },
+                { key: 'engineer', label: 'Engineer' },
+                { key: 'speedingIncidents', label: 'Incidents', pill: true },
+                { key: 'highestSpeed', label: 'Highest Over Limit', suffix: ' mph' },
+                { key: 'speed20', label: '20' },
+                { key: 'speed30', label: '30' },
+                { key: 'speed40', label: '40' },
+                { key: 'speed50', label: '50' },
+                { key: 'speed60', label: '60' },
+                { key: 'speed70', label: '70' }
+            ];
+
+            let html = '<div class="table-wrap"><table><thead><tr>';
+            columns.forEach(c => {
+                let cls = '';
+                if (c.key === sortField) cls = sortDir === 'asc' ? 'sorted-asc' : 'sorted';
+                html += `<th class="${cls}" data-field="${c.key}">${c.label}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            sorted.forEach(r => {
+                html += '<tr>';
+                columns.forEach(c => {
+                    let val = r[c.key];
+                    if (c.fmt) val = c.fmt(val);
+                    if (c.pill) {
+                        html += `<td><span class="pill ${incidentPillClass(val)}">${val ?? 0}</span></td>`;
+                    } else if (c.suffix) {
+                        html += `<td>${(val ?? 0) > 0 ? val + c.suffix : 0}</td>`;
+                    } else {
+                        html += `<td>${val ?? 0}</td>`;
+                    }
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table></div>';
+            area.innerHTML = html;
+
+            area.querySelectorAll('th').forEach(th => th.addEventListener('click', () => {
+                const field = th.dataset.field;
+                if (sortField === field) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+                else { sortField = field; sortDir = 'asc'; }
+                renderTable();
+            }));
+        }
+
+        function renderStats() {
+            const data = getFiltered();
+            const totalIncidents = data.reduce((s, r) => s + (r.speedingIncidents || 0), 0);
+            const engineersInvolved = new Set(data.filter(r => (r.speedingIncidents || 0) > 0).map(r => r.engineer)).size;
+            const engineerCount = new Set(data.map(r => r.engineer)).size;
+            const avg = engineerCount > 0 ? (totalIncidents / engineerCount).toFixed(1) : '0';
+            
+            const weeksCount = new Set(data.map(r => r.weekCommencing).filter(Boolean)).size;
+            const avgWeekly = (engineerCount > 0 && weeksCount > 0) ? (totalIncidents / (engineerCount * weeksCount)).toFixed(2) : '0';
+
+            // Calculate highest speed over limit for the previous completed week only
+            const prevWeek = getPreviousWeekCommencingFromData(allRecords);
+            const prevWeekData = getFilteredExcludeWeek().filter(r => r.weekCommencing === prevWeek);
+            const highestSpeedPrevWeek = prevWeekData.reduce((m, r) => Math.max(m, r.highestSpeed || 0), 0);
+
+            document.getElementById('statTotalIncidents').textContent = totalIncidents;
+            document.getElementById('statEngineersInvolved').textContent = engineersInvolved;
+            document.getElementById('statHighestSpeed').textContent = highestSpeedPrevWeek ? highestSpeedPrevWeek + ' mph over' : '—';
+            document.getElementById('statAvgPerEngineer').textContent = avg;
+            document.getElementById('statAvgWeeklyPerEngineer').textContent = avgWeekly;
+        }
+
+        function getPreviousWeekCommencingFromData(records) {
+            const weeks = [...new Set(records.map(r => r.weekCommencing).filter(Boolean))].sort();
+            if (weeks.length === 0) return '';
+            
+            // Find current Monday
+            const today = new Date();
+            const day = today.getDay();
+            const diff = (day === 0 ? -6 : 1) - day;
+            const currentMonday = new Date(today);
+            currentMonday.setDate(today.getDate() + diff);
+            const currentMondayStr = currentMonday.toISOString().split('T')[0];
+            
+            // If the most recent week in data is >= currentMonday, and there's a previous week in the data, return the previous week.
+            // Otherwise, return the most recent week in the data.
+            const mostRecentWeek = weeks[weeks.length - 1];
+            if (mostRecentWeek >= currentMondayStr && weeks.length > 1) {
+                return weeks[weeks.length - 2];
+            }
+            return mostRecentWeek;
+        }
+
+        function getFilteredExcludeWeek() {
+            const leader = document.getElementById('filterLeader').value;
+            const engineerSearch = document.getElementById('filterEngineer').value.trim().toLowerCase();
+
+            return allRecords.filter(r => {
+                if (leader && r.teamLeader !== leader) return false;
+                if (engineerSearch && !(r.engineer || '').toLowerCase().includes(engineerSearch)) return false;
+                return true;
+            });
+        }
+
+        function renderCharts() {
+            const data = getFiltered();
+            const bandLabels = ['20', '30', '40', '50', '60', '70'];
+
+            // Find previous working week
+            const prevWeek = getPreviousWeekCommencingFromData(allRecords);
+            const prevWeekData = getFilteredExcludeWeek().filter(r => r.weekCommencing === prevWeek);
+            
+            // Speed band totals for previous week only
+            const bandTotals = bandLabels.map(b => prevWeekData.reduce((s, r) => s + (r['speed' + b] || 0), 0));
+
+            // Leader incidents for previous week only
+            const leaderMap = {};
+            prevWeekData.forEach(r => {
+                const key = r.teamLeader || 'Unknown';
+                leaderMap[key] = (leaderMap[key] || 0) + (r.speedingIncidents || 0);
+            });
+
+            // Weekly maps for general trends (over all weeks matching filters)
+            const weekMap = {};
+            const weekDriverMap = {}; // unique engineers per week
+            data.forEach(r => {
+                const key = r.weekCommencing || 'Unknown';
+                weekMap[key] = (weekMap[key] || 0) + (r.speedingIncidents || 0);
+                if (!weekDriverMap[key]) weekDriverMap[key] = new Set();
+                if (r.engineer) weekDriverMap[key].add(r.engineer);
+            });
+            const sortedWeeks = Object.keys(weekMap).sort();
+
+            // Dynamic headers updating to show the previous week Commencing date
+            const prevWeekFormatted = formatDate(prevWeek);
+            const bandHeader = document.getElementById('bandChartTitle');
+            const leaderHeader = document.getElementById('leaderChartTitle');
+            if (bandHeader) bandHeader.textContent = `Incidents by Speed Limit Band (${prevWeekFormatted || 'No Data'})`;
+            if (leaderHeader) leaderHeader.textContent = `Incidents by Team Leader (${prevWeekFormatted || 'No Data'})`;
+
+            const ctxIncidentRateTrend = document.getElementById('incidentRateTrendChart').getContext('2d');
+            const ctxBand = document.getElementById('bandChart').getContext('2d');
+            const ctxLeader = document.getElementById('leaderChart').getContext('2d');
+            const ctxTrend = document.getElementById('trendChart').getContext('2d');
+
+            if (incidentRateTrendChart) incidentRateTrendChart.destroy();
+            if (bandChart) bandChart.destroy();
+            if (leaderChart) leaderChart.destroy();
+            if (trendChart) trendChart.destroy();
+
+            // Create canvas linear gradients for rich styling
+            let gradientIndigo = ctxBand.createLinearGradient(0, 0, 0, 300);
+            gradientIndigo.addColorStop(0, 'rgba(9,114,211,0.85)');
+            gradientIndigo.addColorStop(1, 'rgba(9,114,211,0.2)');
+
+            let gradientViolet = ctxLeader.createLinearGradient(0, 0, 400, 0);
+            gradientViolet.addColorStop(0, 'rgba(9,114,211,0.85)');
+            gradientViolet.addColorStop(1, 'rgba(9,114,211,0.2)');
+
+            let gradientTrend = ctxTrend.createLinearGradient(0, 0, 0, 300);
+            gradientTrend.addColorStop(0, 'rgba(9,114,211,0.3)');
+            gradientTrend.addColorStop(1, 'rgba(9,114,211,0)');
+
+            let gradientRateTrend = ctxIncidentRateTrend.createLinearGradient(0, 0, 0, 300);
+            gradientRateTrend.addColorStop(0, 'rgba(6,127,104,0.3)');
+            gradientRateTrend.addColorStop(1, 'rgba(6,127,104,0)');
+
+            // Global Chart.js configuration overrides for the dark theme
+            Chart.defaults.color = '#687078';
+            Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
+            Chart.defaults.font.size = 11;
+            Chart.defaults.plugins.tooltip.backgroundColor = '#232F3E';
+            Chart.defaults.plugins.tooltip.titleColor = '#161E2D';
+            Chart.defaults.plugins.tooltip.bodyColor = '#545B64';
+            Chart.defaults.plugins.tooltip.borderColor = 'rgba(135,149,150,0.08)';
+            Chart.defaults.plugins.tooltip.borderWidth = 1;
+            Chart.defaults.plugins.tooltip.padding = 10;
+            Chart.defaults.plugins.tooltip.cornerRadius = 8;
+
+            const gridConfig = { color: 'rgba(135,149,150,0.04)', drawBorder: false };
+
+            // 1. Weekly Average Incident Rate per Driver (Line)
+            const weeklyIncidentRatios = sortedWeeks.map(w => {
+                const totalIncidents = weekMap[w] || 0;
+                const uniqueDrivers = weekDriverMap[w] ? weekDriverMap[w].size : 0;
+                return uniqueDrivers > 0 ? parseFloat((totalIncidents / uniqueDrivers).toFixed(2)) : 0;
+            });
+
+            incidentRateTrendChart = new Chart(ctxIncidentRateTrend, {
+                type: 'line',
+                data: {
+                    labels: sortedWeeks.map(formatDate),
+                    datasets: [{
+                        label: 'Avg Incidents / Driver',
+                        data: weeklyIncidentRatios,
+                        borderColor: '#2EA597', // Emerald
+                        borderWidth: 2.5,
+                        pointBackgroundColor: '#1D8102',
+                        pointBorderColor: '#232F3E',
+                        pointBorderWidth: 2,
+                        pointHoverRadius: 6,
+                        pointRadius: 4,
+                        backgroundColor: gradientRateTrend,
+                        fill: true,
+                        tension: 0.35
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { 
+                            beginAtZero: true, 
+                            grid: gridConfig,
+                            title: {
+                                display: true,
+                                text: 'Avg Incidents per Driver',
+                                color: '#687078',
+                                font: { size: 10, weight: '600' }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 2. Band Chart (Bar) - Previous Week Only
+            bandChart = new Chart(ctxBand, {
+                type: 'bar',
+                data: {
+                    labels: bandLabels.map(b => b + ' mph zone'),
+                    datasets: [{ 
+                        label: 'Incidents', 
+                        data: bandTotals, 
+                        backgroundColor: gradientIndigo,
+                        borderColor: '#3759CE',
+                        borderWidth: 1.5,
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    plugins: { legend: { display: false } }, 
+                    scales: { 
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, grid: gridConfig } 
+                    } 
+                }
+            });
+
+            // 3. Leader Chart (Horizontal Bar) - Previous Week Only
+            leaderChart = new Chart(ctxLeader, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(leaderMap),
+                    datasets: [{ 
+                        label: 'Incidents', 
+                        data: Object.values(leaderMap), 
+                        backgroundColor: gradientViolet,
+                        borderColor: '#8456CE',
+                        borderWidth: 1.5,
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    indexAxis: 'y', 
+                    plugins: { legend: { display: false } }, 
+                    scales: { 
+                        x: { beginAtZero: true, grid: gridConfig },
+                        y: { grid: { display: false } } 
+                    } 
+                }
+            });
+
+            // 4. Trend Chart (Line)
+            trendChart = new Chart(ctxTrend, {
+                type: 'line',
+                data: {
+                    labels: sortedWeeks.map(formatDate),
+                    datasets: [{ 
+                        label: 'Total Incidents', 
+                        data: sortedWeeks.map(w => weekMap[w]), 
+                        borderColor: '#3759CE', 
+                        borderWidth: 2,
+                        pointBackgroundColor: '#3759CE',
+                        pointBorderColor: '#232F3E',
+                        pointBorderWidth: 2,
+                        pointHoverRadius: 6,
+                        pointRadius: 4,
+                        backgroundColor: gradientTrend, 
+                        fill: true, 
+                        tension: 0.35 
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    plugins: { legend: { display: false } }, 
+                    scales: { 
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, grid: gridConfig } 
+                    } 
+                }
+            });
+        }
+
+        function renderAll() {
+            renderStats();
+            renderTable();
+            renderCharts();
+        }
+
+        document.getElementById('filterWeek').addEventListener('change', renderAll);
+        document.getElementById('filterLeader').addEventListener('change', renderAll);
+        document.getElementById('filterEngineer').addEventListener('input', renderAll);
+        document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+            document.getElementById('filterWeek').value = '';
+            document.getElementById('filterLeader').value = '';
+            document.getElementById('filterEngineer').value = '';
+            renderAll();
+        });
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+                if (btn.dataset.tab === 'chartTab') renderCharts();
+            });
+        });
+    </script>
+</body>
+</html>

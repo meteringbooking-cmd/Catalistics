@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<!-- Catalistics: shared settings (storage, targets, links). Must load before the page scripts. -->
+<script src="catalistics-settings.js" onerror="this.remove()"></script>
+<script src="catalistics-config.js"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Management · Catalistics</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        :root {
+            --primary: #FF9900;
+            --primary-dark: #FF9900;
+            --secondary: #FF9900;
+            --accent: #0972D3;
+            --dark: #F2F3F3;
+            --dark-light: #FFFFFF;
+            --dark-lighter: #FFFFFF;
+            --text: #161E2D;
+            --text-dim: #545B64;
+            --success: #067F68;
+            --error: #D13212;
+            --shadow: rgba(255,153,0,0.35);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--cx-font); background: #F2F3F3; color: var(--text); line-height: 1.6; overflow-x: hidden; min-height: 100vh; }
+        body::before { content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle at 20% 50%, #FFF7E8 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(9,114,211,0.028) 0%, transparent 50%), radial-gradient(circle at 40% 20%, #FFF7E8 0%, transparent 50%); animation: float 20s ease-in-out infinite; pointer-events: none; z-index: -1; }
+        @keyframes float { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 33% { transform: translate(30px, -30px) rotate(120deg); } 66% { transform: translate(-20px, 20px) rotate(240deg); } }
+        .container { max-width: 1600px; margin: 0 auto; padding: 2rem; }
+        header { margin-bottom: 2rem; animation: slideDown 0.8s ease-out; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+        .header-content { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+        .logo { font-family: var(--cx-font); font-size: 2rem; font-weight: 800; background: none; -webkit-background-clip: border-box; -webkit-text-fill-color: currentColor; background-clip: border-box; text-decoration: none; }
+        .back-btn { background: var(--dark-light); color: var(--text); text-decoration: none; padding: 0.7rem 1.5rem; border-radius: 4px; font-size: 0.9rem; transition: all 0.3s ease; border: 2px solid transparent; }
+        .back-btn:hover { background: var(--dark-lighter); border-color: var(--primary); transform: translateX(-5px); }
+        h1 { font-family: var(--cx-font); font-size: 2.5rem; margin-bottom: 0.5rem; color: var(--text); }
+        .subtitle { color: var(--text-dim); font-size: 0.95rem; }
+        .actions-card { background: var(--dark-light); border-radius: 4px; padding: 2rem; border: 2px solid transparent; margin-bottom: 2rem; animation: fadeInUp 0.6s ease-out; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .actions-row { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .btn { background: linear-gradient(135deg, var(--primary), var(--accent)); color: #161E2D; border: none; padding: 1rem 2rem; border-radius: 4px; font-family: var(--cx-font); font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: inline-block; }
+        .btn:hover { transform: none; box-shadow: 0 1px 2px rgba(0,28,36,0.10); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-secondary { background: var(--dark-lighter); border: 2px solid var(--primary); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .team-card { background: var(--dark-light); border-radius: 4px; padding: 1.5rem; border: 2px solid var(--dark-lighter); transition: all 0.3s ease; animation: fadeInUp 0.8s ease-out; cursor: pointer; }
+        .team-card:hover { border-color: var(--primary); transform: none; box-shadow: 0 1px 2px rgba(0,28,36,0.10); }
+        .team-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 2px solid var(--dark-lighter); }
+        .team-name { font-family: var(--cx-font); font-size: 1.3rem; font-weight: 700; color: var(--text); }
+        .team-count { background: none; -webkit-background-clip: border-box; -webkit-text-fill-color: currentColor; background-clip: border-box; font-family: var(--cx-font); font-size: 2rem; font-weight: 800; }
+        .headcount-row { background: var(--dark-lighter); padding: 0.8rem 1rem; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
+        .headcount-label { color: var(--text-dim); font-size: 0.85rem; }
+        .headcount-value { color: var(--secondary); font-weight: 700; font-size: 1rem; }
+        .location-stats { display: grid; gap: 0.8rem; margin-top: 1rem; }
+        .location-row { background: var(--dark-lighter); padding: 0.8rem 1rem; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; }
+        .location-name { color: var(--text-dim); font-size: 0.9rem; }
+        .location-count { color: var(--accent); font-weight: 700; font-size: 1.1rem; }
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,7,22,0.55); backdrop-filter: blur(10px); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.show { display: flex; }
+        .modal-content { background: var(--dark-light); border-radius: 4px; padding: 2rem; max-width: 700px; width: 90%; border: 2px solid var(--primary); max-height: 85vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid var(--dark-lighter); }
+        .modal-title { font-family: var(--cx-font); font-size: 1.5rem; background: none; -webkit-background-clip: border-box; -webkit-text-fill-color: currentColor; background-clip: border-box; }
+        .close-btn { background: none; border: none; color: var(--text-dim); font-size: 2rem; cursor: pointer; transition: color 0.3s ease; line-height: 1; }
+        .close-btn:hover { color: var(--error); }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-label { display: block; color: var(--text-dim); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+        .form-input, .form-select { width: 100%; background: var(--dark-lighter); border: 2px solid var(--dark-lighter); color: var(--text); padding: 0.8rem 1rem; border-radius: 4px; font-family: var(--cx-font); font-size: 0.9rem; transition: all 0.3s ease; }
+        .form-input:focus, .form-select:focus { outline: none; border-color: var(--primary); }
+        .file-upload { border: 2px dashed var(--dark-lighter); border-radius: 4px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.3s ease; }
+        .file-upload:hover { border-color: var(--primary); background: var(--dark-lighter); }
+        .file-upload input { display: none; }
+        .upload-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--dark-light); color: var(--text); padding: 1rem 1.5rem; border-radius: 4px; border: 2px solid var(--success); box-shadow: 0 1px 2px rgba(0,28,36,0.10); z-index: 2000; animation: slideIn 0.3s ease-out; display: none; }
+        .toast.show { display: block; }
+        .toast.error { border-color: var(--error); }
+        @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .search-input { width: 100%; margin-bottom: 1.5rem; }
+        .employee-list { max-height: 50vh; overflow-y: auto; }
+        .employee-item { padding: 1rem; background: var(--dark-lighter); border-radius: 4px; margin-bottom: 0.8rem; cursor: pointer; transition: all 0.3s ease; display: flex; justify-content: space-between; align-items: center; }
+        .employee-item:hover { background: var(--primary-dark); transform: translateX(5px); }
+        .employee-name { font-weight: 600; }
+        .employee-info { color: var(--text-dim); font-size: 0.9rem; }
+        .leave-date { color: var(--error); font-size: 0.85rem; }
+        .holiday-item { padding: 1rem; background: var(--dark-lighter); border-radius: 4px; margin-bottom: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
+        .holiday-days { color: var(--secondary); font-weight: 700; font-size: 1.2rem; }
+        .view-toggle { margin: 1.5rem 0; text-align: center; }
+        .absence-detail-item { padding: 0.8rem; background: var(--dark-lighter); border-radius: 4px; margin-bottom: 0.6rem; }
+        .clickable-name { cursor: pointer; color: var(--accent); text-decoration: underline; }
+        .clickable-name:hover { color: var(--primary); }
+
+        /* New Allowances specific styles */
+        .na-summary-row { display: flex; gap: 1rem; margin-bottom: 1.2rem; }
+        .na-summary-pill { flex: 1; background: var(--dark-lighter); border-radius: 4px; padding: 1rem; text-align: center; }
+        .na-summary-num { font-family: var(--cx-font); font-size: 2rem; font-weight: 800; }
+        .na-summary-num.matched { color: var(--success); }
+        .na-summary-num.unmatched { color: var(--error); }
+        .na-summary-lbl { font-size: 0.8rem; color: var(--text-dim); margin-top: 0.3rem; }
+        .na-list-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dim); margin-bottom: 0.6rem; }
+        .na-list-label.err { color: var(--error); }
+        .na-match-item { padding: 0.7rem 1rem; background: var(--dark-lighter); border-radius: 4px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid var(--success); }
+        .na-unmatch-item { padding: 0.7rem 1rem; background: #FDF3F1; border-radius: 4px; margin-bottom: 0.5rem; border-left: 3px solid var(--error); display: flex; justify-content: space-between; align-items: center; }
+        .na-item-name { font-size: 0.9rem; }
+        .na-item-days { color: var(--secondary); font-weight: 700; }
+        .na-item-err { color: var(--error); font-size: 0.8rem; }
+        .na-scrollable { max-height: 200px; overflow-y: auto; }
+        .na-divider { height: 1px; background: var(--dark-lighter); margin: 1.2rem 0; }
+
+        @media (max-width: 768px) { .container { padding: 1rem; } .stats-grid { grid-template-columns: 1fr; } }
+    </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="catalistics-theme.css">
+<script src="catalistics-shell.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <a href="index.html" class="logo">Staff Management</a>
+            </div>
+            <h1></h1>
+            <p class="subtitle">Manage your team members and track team statistics</p>
+        </header>
+        <div class="actions-card">
+            <div class="actions-row">
+                <button class="btn" onclick="openAddEmployeeModal()">Add Employee</button>
+                <button class="btn btn-secondary" onclick="openUploadCSVModal()">Upload CSV</button>
+                <button class="btn btn-secondary" onclick="openViewEmployeesModal()">View Employees</button>
+                <button class="btn btn-secondary" onclick="openUpdateHolidaysModal()">Update Holidays</button>
+                <button class="btn btn-secondary" onclick="openUpdateAbsencesModal()">Update Absences</button>
+                <button class="btn btn-secondary" onclick="openNewAllowancesModal()">Upload 2026/27 Allowances</button>
+            </div>
+        </div>
+        <div class="stats-grid" id="stats-grid">
+
+            <!-- Team Leader 1 -->
+            <div class="team-card" onclick="openTeamHolidaysModal('Team Leader 1')">
+                <div class="team-header"><div class="team-name">Team Leader 1</div><div class="team-count" id="count-team-leader-1">0</div></div>
+                <div class="headcount-row"><span class="headcount-label">2025</span><span class="headcount-value" id="headcount-2025-team-leader-1">0</span></div>
+                <div class="headcount-row"><span class="headcount-label" id="month-label-team-leader-1">Dec</span><span class="headcount-value" id="headcount-month-team-leader-1">0</span></div>
+                <div class="headcount-row"><span class="headcount-label">Today</span><span class="headcount-value" id="headcount-today-team-leader-1">0</span></div>
+                <div class="location-stats">
+                    <div class="location-row"><span class="location-name">ECHO</span><span class="location-count" id="loc-team-leader-1-echo">0</span></div>
+                    <div class="location-row"><span class="location-name">Delta</span><span class="location-count" id="loc-team-leader-1-delta">0</span></div>
+                    <div class="location-row"><span class="location-name">CORE</span><span class="location-count" id="loc-team-leader-1-core">0</span></div>
+                    <div class="location-row"><span class="location-name">Core Bravo</span><span class="location-count" id="loc-team-leader-1-corebravo">0</span></div>
+                    <div class="location-row"><span class="location-name">Charlie</span><span class="location-count" id="loc-team-leader-1-Charlie">0</span></div>
+                </div>
+            </div>
+
+            <!-- Team Leader 2 -->
+            <div class="team-card" onclick="openTeamHolidaysModal('Team Leader 2')">
+                <div class="team-header"><div class="team-name">Team Leader 2</div><div class="team-count" id="count-team-leader-2">0</div></div>
+                <div class="headcount-row"><span class="headcount-label">2025</span><span class="headcount-value" id="headcount-2025-team-leader-2">0</span></div>
+                <div class="headcount-row"><span class="headcount-label" id="month-label-team-leader-2">Dec</span><span class="headcount-value" id="headcount-month-team-leader-2">0</span></div>
+                <div class="headcount-row"><span class="headcount-label">Today</span><span class="headcount-value" id="headcount-today-team-leader-2">0</span></div>
+                <div class="location-stats">
+                    <div class="location-row"><span class="location-name">ECHO</span><span class="location-count" id="loc-team-leader-2-echo">0</span></div>
+                    <div class="location-row"><span class="location-name">Delta</span><span class="location-count" id="loc-team-leader-2-delta">0</span></div>
+                    <div class="location-row"><span class="location-name">CORE</span><span class="location-count" id="loc-team-leader-2-core">0</span></div>
+                    <div class="location-row"><span class="location-name">Core Bravo</span><span class="location-count" id="loc-team-leader-2-corebravo">0</span></div>
+                    <div class="location-row"><span class="location-name">Charlie</span><span class="location-count" id="loc-team-leader-2-charlie">0</span></div>
+                </div>
+            </div>
+
+            <!-- Team Leader 3 -->
+            <div class="team-card" onclick="openTeamHolidaysModal('Team Leader 3')">
+                <div class="team-header"><div class="team-name">Team Leader 3</div><div class="team-count" id="count-team-leader-3">0</div></div>
+                <div class="headcount-row"><span class="headcount-label">2025</span><span class="headcount-value" id="headcount-2025-team-leader-3">0</span></div>
+                <div class="headcount-row"><span class="headcount-label" id="month-label-team-leader-3">Dec</span><span class="headcount-value" id="headcount-month-team-leader-3">0</span></div>
+                <div class="headcount-row"><span class="headcount-label">Today</span><span class="headcount-value" id="headcount-today-team-leader-3">0</span></div>
+                <div class="location-stats">
+                    <div class="location-row"><span class="location-name">ECHO</span><span class="location-count" id="loc-team-leader-3-echo">0</span></div>
+                    <div class="location-row"><span class="location-name">Delta</span><span class="location-count" id="loc-team-leader-3-delta">0</span></div>
+                    <div class="location-row"><span class="location-name">CORE</span><span class="location-count" id="loc-team-leader-3-core">0</span></div>
+                    <div class="location-row"><span class="location-name">Core Bravo</span><span class="location-count" id="loc-team-leader-3-corebravo">0</span></div>
+                    <div class="location-row"><span class="location-name">Charlie</span><span class="location-count" id="loc-team-leader-3-Charlie">0</span></div>
+                </div>
+            </div>
+
+            <!-- Team Leader 4 -->
+            <div class="team-card" onclick="openTeamHolidaysModal('Team Leader 4')">
+                <div class="team-header"><div class="team-name">Team Leader 4</div><div class="team-count" id="count-team-leader-4">0</div></div>
+                <div class="headcount-row"><span class="headcount-label">2025</span><span class="headcount-value" id="headcount-2025-team-leader-4">0</span></div>
+                <div class="headcount-row"><span class="headcount-label" id="month-label-team-leader-4">Dec</span><span class="headcount-value" id="headcount-month-team-leader-4">0</span></div>
+                <div class="headcount-row"><span class="headcount-label">Today</span><span class="headcount-value" id="headcount-today-team-leader-4">0</span></div>
+                <div class="location-stats">
+                    <div class="location-row"><span class="location-name">ECHO</span><span class="location-count" id="loc-team-leader-4-echo">0</span></div>
+                    <div class="location-row"><span class="location-name">Delta</span><span class="location-count" id="loc-team-leader-4-delta">0</span></div>
+                    <div class="location-row"><span class="location-name">CORE</span><span class="location-count" id="loc-team-leader-4-core">0</span></div>
+                    <div class="location-row"><span class="location-name">Core Bravo</span><span class="location-count" id="loc-team-leader-4-corebravo">0</span></div>
+                    <div class="location-row"><span class="location-name">Charlie</span><span class="location-count" id="loc-team-leader-4-Calsisen">0</span></div>
+                </div>
+            </div>
+
+            <!-- Back Office -->
+            <div class="team-card" onclick="openTeamHolidaysModal('Back Office')">
+                <div class="team-header"><div class="team-name">Back Office</div><div class="team-count" id="count-back-office">0</div></div>
+                <div class="headcount-row"><span class="headcount-label">2025</span><span class="headcount-value" id="headcount-2025-back-office">0</span></div>
+                <div class="headcount-row"><span class="headcount-label" id="month-label-back-office">Dec</span><span class="headcount-value" id="headcount-month-back-office">0</span></div>
+                <div class="headcount-row"><span class="headcount-label">Today</span><span class="headcount-value" id="headcount-today-back-office">0</span></div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Add Employee Modal -->
+    <div class="modal" id="add-employee-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title">Add Employee</h2><button class="close-btn" onclick="closeAddEmployeeModal()">×</button></div>
+            <form id="employee-form" onsubmit="handleAddEmployee(event)">
+                <div class="form-group"><label class="form-label" for="full-name">Full Name</label><input type="text" id="full-name" class="form-input" required></div>
+                <div class="form-group"><label class="form-label" for="start-date">Start Date (DD/MM/YYYY)</label><input type="text" id="start-date" class="form-input" placeholder="DD/MM/YYYY" required pattern="\d{2}/\d{2}/\d{4}"></div>
+                <div class="form-group">
+                    <label class="form-label" for="team-leader">Team Leader</label>
+                    <select id="team-leader" class="form-select" required>
+                        <option value="">Select Team Leader</option>
+                        <option value="Team Leader 1">Team Leader 1</option>
+                        <option value="Team Leader 2">Team Leader 2</option>
+                        <option value="Team Leader 3">Team Leader 3</option>
+                        <option value="Team Leader 4">Team Leader 4</option>
+                        <option value="Back Office">Back Office</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="location">Location</label>
+                    <select id="location" class="form-select" required>
+                        <option value="">Select Location</option>
+                        <option value="ECHO">ECHO</option>
+                        <option value="Delta">Delta</option>
+                        <option value="CORE">CORE</option>
+                        <option value="Core Bravo">Core Bravo</option>
+                        <option value="Charlie">Charlie</option>
+                        <option value="N/A">N/A (Back Office)</option>
+                    </select>
+                </div>
+                <div class="form-group"><label class="form-label" for="remaining-holidays">Remaining Holidays</label><input type="number" id="remaining-holidays" class="form-input" min="0" step="0.5" placeholder="e.g. 25" required></div>
+                <button type="submit" class="btn" style="width: 100%; margin-top: 1rem;">Add Employee</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Upload CSV Modal -->
+    <div class="modal" id="upload-csv-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title">Upload CSV</h2><button class="close-btn" onclick="closeUploadCSVModal()">×</button></div>
+            <div class="modal-body">
+                <p style="color: var(--text-dim); margin-bottom: 1rem;">Upload a CSV file with columns: <strong>Full Name</strong>, <strong>Start Date</strong>, <strong>Team Leader</strong>, <strong>Location</strong></p>
+                <div class="file-upload" onclick="document.getElementById('csv-file').click()">
+                    <div class="upload-icon">📤</div>
+                    <div style="color: var(--text-dim);">Click to select CSV file</div>
+                    <input type="file" id="csv-file" accept=".csv" onchange="handleCSVUpload(event)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Employees Modal -->
+    <div class="modal" id="view-employees-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title">All Employees</h2><button class="close-btn" onclick="closeViewEmployeesModal()">×</button></div>
+            <input type="text" id="employee-search" class="form-input search-input" placeholder="Search by name..." onkeyup="filterEmployees()">
+            <div class="employee-list" id="employee-list"></div>
+        </div>
+    </div>
+
+    <!-- Edit Leave Date Modal -->
+    <div class="modal" id="edit-leave-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title" id="edit-employee-name">Edit Leave Date</h2><button class="close-btn" onclick="closeEditLeaveModal()">×</button></div>
+            <form id="leave-form" onsubmit="saveLeaveDate(event)">
+                <input type="hidden" id="edit-employee-id">
+                <div class="form-group"><label class="form-label" for="leave-date">Leave Date</label><input type="date" id="leave-date" class="form-input"></div>
+                <button type="submit" class="btn" style="width: 100%;">Save Leave Date</button>
+                <button type="button" class="btn btn-secondary" onclick="clearLeaveDate()" style="width: 100%; margin-top: 0.5rem;">Clear Leave Date</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Update Holidays Modal -->
+    <div class="modal" id="update-holidays-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title">Update Holiday Entitlements</h2><button class="close-btn" onclick="closeUpdateHolidaysModal()">×</button></div>
+            <div class="actions-row" style="margin-bottom: 1.5rem; gap: 1rem; justify-content: center;">
+                <button class="btn" onclick="openSingleHolidayModal()">Deduct Holiday Days</button>
+                <button class="btn btn-secondary" onclick="openBulkHolidayCSVModal()">Upload CSV</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Single Holiday Modal -->
+    <div class="modal" id="single-holiday-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title">Deduct Holiday Days</h2><button class="close-btn" onclick="closeSingleHolidayModal()">×</button></div>
+            <form id="single-holiday-form" onsubmit="handleSingleHolidaySubmit(event)">
+                <div class="form-group"><label class="form-label">Employee</label><select id="holiday-employee" class="form-select" required onchange="updateCurrentHolidays()"><option value="">Select Employee</option></select></div>
+                <div id="current-holidays-display" style="color: var(--text-dim); margin-bottom: 1rem; font-size: 0.9rem; padding: 0.8rem; background: var(--dark-lighter); border-radius: 4px;"></div>
+                <div class="form-group"><label class="form-label" for="holiday-days">Holiday Days to Deduct</label><input type="number" id="holiday-days" class="form-input" min="0" step="0.5" placeholder="e.g. 2" required></div>
+                <button type="submit" class="btn" style="width: 100%; margin-top: 1rem;">Deduct Holiday Days</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Holiday CSV Modal -->
+    <div class="modal" id="bulk-holiday-csv-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title">Upload Holiday Entitlements CSV</h2><button class="close-btn" onclick="closeBulkHolidayCSVModal()">×</button></div>
+            <p style="color: var(--text-dim); margin-bottom: 1rem;">CSV must have columns: <strong>Full Name</strong>, <strong>Remaining Holidays</strong></p>
+            <div class="file-upload" onclick="document.getElementById('holiday-csv-file').click()">
+                <div class="upload-icon">📤</div>
+                <div style="color: var(--text-dim);">Click to select CSV file</div>
+                <input type="file" id="holiday-csv-file" accept=".csv" onchange="handleHolidayCSVUpload(event)">
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Absences Modal -->
+    <div class="modal" id="update-absences-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title">Update Absences</h2><button class="close-btn" onclick="closeUpdateAbsencesModal()">×</button></div>
+            <div class="actions-row" style="margin-bottom: 1.5rem; gap: 1rem; justify-content: center;">
+                <button class="btn" onclick="openSingleAbsenceModal()">Add Single Absence</button>
+                <button class="btn btn-secondary" onclick="openBulkAbsenceCSVModal()">Upload CSV</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Single Absence Modal -->
+    <div class="modal" id="single-absence-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title">Add Absence</h2><button class="close-btn" onclick="closeSingleAbsenceModal()">×</button></div>
+            <form id="single-absence-form" onsubmit="handleSingleAbsenceSubmit(event)">
+                <div class="form-group"><label class="form-label">Employee</label><select id="absence-employee" class="form-select" required><option value="">Select Employee</option></select></div>
+                <div class="form-group">
+                    <label class="form-label">Type of Absence</label>
+                    <select id="absence-type" class="form-select" required>
+                        <option value="">Select Type</option>
+                        <option value="Sickness absence ">Sickness absence </option>
+                        <option value="General absence: GA - AAUP General Absence - Authorised Absence Unpaid">General absence: GA - AAUP General Absence - Authorised Absence Unpaid</option>
+                        <option value="General absence: GA - UPTOFD General Absence - Unpaid Time off for Dependants">General absence: GA - UPTOFD General Absence - Unpaid Time off for Dependants</option>
+                        <option value="General absence: GA - PCL General Absence - Paid Compassionate Leave">General absence: GA - PCL General Absence - Paid Compassionate Leave</option>
+                        <option value="General absence: GA - AWOL">General absence: GA - AWOL</option>
+                        <option value="General absence: GA - UPMA General Absence - Unpaid Medical Appointment">General absence: GA - UPMA General Absence - Unpaid Medical Appointment</option>
+                        <option value="General absence: GA - PHA General Absence - Paid hospital 2 hrs Appointment">General absence: GA - PHA General Absence - Paid hospital 2 hrs Appointment</option>
+                        <option value="General absence: GA - AAP General Absence - Authorised Absence Paid">General absence: GA - AAP General Absence - Authorised Absence Paid</option>
+                        <option value="General absence: GA - PTOFD General Absence - Paid Time off for Dependants">General absence: GA - PTOFD General Absence - Paid Time off for Dependants</option>
+                        <option value="General absence: GA UPCL - General Absence - Unpaid Compassionate Leave">General absence: GA UPCL - General Absence - Unpaid Compassionate Leave</option>
+                    </select>
+                </div>
+                <div class="form-group"><label class="form-label" for="absence-date">Date of Absence</label><input type="date" id="absence-date" class="form-input" required></div>
+                <div class="form-group"><label class="form-label" for="absence-days">No. Working Days Off</label><input type="number" id="absence-days" class="form-input" min="0" step="0.5" value="1"></div>
+                <div class="form-group"><label class="form-label" for="absence-hours">No. Working Hours Off (if days = 0)</label><input type="number" id="absence-hours" class="form-input" min="0" step="0.5" value="0"></div>
+                <button type="submit" class="btn" style="width: 100%; margin-top: 1rem;">Save Absence</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Absence CSV Modal -->
+    <div class="modal" id="bulk-absence-csv-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title">Upload Absences CSV</h2><button class="close-btn" onclick="closeBulkAbsenceCSVModal()">×</button></div>
+            <p style="color: var(--text-dim); margin-bottom: 1rem;">CSV must have columns: <strong>Full Name</strong>, <strong>Type of Absence</strong>, <strong>day</strong>, <strong>month</strong>, <strong>year</strong>, <strong>No. working days off</strong>, <strong>No. working hours off</strong></p>
+            <div class="file-upload" onclick="document.getElementById('absence-csv-file').click()">
+                <div class="upload-icon">📤</div>
+                <div style="color: var(--text-dim);">Click to select CSV file</div>
+                <input type="file" id="absence-csv-file" accept=".csv" onchange="handleAbsenceCSVUpload(event)">
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Holidays / Absences Modal -->
+    <div class="modal" id="team-holidays-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title" id="team-holidays-title">Team Holidays</h2><button class="close-btn" onclick="closeTeamHolidaysModal()">×</button></div>
+            <div class="view-toggle">
+                <label style="color: var(--text-dim); margin-right: 1rem;">View:</label>
+                <select id="view-mode-select" class="form-select" style="display: inline-block; width: auto;" onchange="refreshTeamView()">
+                    <option value="holidays">Remaining Holidays</option>
+                    <option value="absences">Absences</option>
+                </select>
+                <select id="absence-filter-select" class="form-select" style="display: inline-block; width: auto; margin-left: 1rem; display: none;" onchange="refreshTeamView()">
+                    <option value="all">All Absence Types</option>
+                    <option value="Sickness absence ">Sickness absence </option>
+                    <option value="General absence: GA - AAUP General Absence - Authorised Absence Unpaid">General absence: GA - AAUP</option>
+                    <option value="General absence: GA - AWOL">General absence: GA - AWOL</option>
+                    <option value="General absence: GA - AAP General Absence - Authorised Absence Paid">General absence: GA - AAP</option>
+                </select>
+            </div>
+            <div id="team-holidays-list"></div>
+        </div>
+    </div>
+
+    <!-- Absence Details Modal -->
+    <div class="modal" id="absence-details-modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title" id="absence-details-title">Absence Details</h2><button class="close-btn" onclick="closeAbsenceDetailsModal()">×</button></div>
+            <div id="absence-details-list"></div>
+        </div>
+    </div>
+
+    <!-- Upload 2026/27 Allowances Modal -->
+    <div class="modal" id="new-allowances-modal">
+        <div class="modal-content" style="max-width: 680px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Upload 2026/27 Holiday Allowances</h2>
+                <button class="close-btn" onclick="closeNewAllowancesModal()">×</button>
+            </div>
+            <div style="background: var(--dark-lighter); border-radius: 4px; padding: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-dim); line-height: 1.9;">
+                CSV must include two columns:<br>
+                <strong style="color: var(--secondary);">Full Name</strong> &nbsp;—&nbsp; must match exactly as entered in the system<br>
+                <strong style="color: var(--secondary);">Remaining Holidays</strong> &nbsp;—&nbsp; new allowance in days (e.g. <strong style="color: var(--secondary);">25</strong> or <strong style="color: var(--secondary);">25.5</strong>)<br><br>
+                Matched employees are updated automatically. Any unmatched names are flagged so you can adjust them manually.
+            </div>
+            <div class="file-upload" onclick="document.getElementById('new-allowances-file').click()">
+                <div class="upload-icon">📤</div>
+                <div style="color: var(--text-dim);">Click to select CSV file</div>
+                <input type="file" id="new-allowances-file" accept=".csv" onchange="handleNewAllowancesUpload(event)">
+            </div>
+            <div id="new-allowances-results" style="display: none; margin-top: 1.5rem;">
+                <div class="na-divider"></div>
+                <div class="na-summary-row">
+                    <div class="na-summary-pill">
+                        <div class="na-summary-num matched" id="na-matched-count">0</div>
+                        <div class="na-summary-lbl">Matched &amp; Ready</div>
+                    </div>
+                    <div class="na-summary-pill">
+                        <div class="na-summary-num unmatched" id="na-unmatched-count">0</div>
+                        <div class="na-summary-lbl">Couldn't Be Matched</div>
+                    </div>
+                </div>
+                <div id="na-matched-wrap">
+                    <div class="na-list-label">✅ Will be updated</div>
+                    <div class="na-scrollable" id="na-matched-list"></div>
+                </div>
+                <div id="na-unmatched-wrap" style="margin-top: 1rem; display: none;">
+                    <div class="na-list-label err">⚠ Not found in system — adjust manually</div>
+                    <div class="na-scrollable" id="na-unmatched-list"></div>
+                </div>
+                <button id="na-confirm-btn" class="btn" style="width: 100%; margin-top: 1.2rem;" onclick="applyNewAllowances()">
+                    Apply Changes to System
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteField, query, where, arrayUnion } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        const firebaseConfig = CATALISTICS.firebaseConfig('secondary');
+        try {
+            const app = initializeApp(firebaseConfig);
+            window.db = getFirestore(app);
+            window.firebaseModules = { collection, addDoc, getDocs, doc, updateDoc, deleteField, query, where, arrayUnion };
+            window.addEventListener('DOMContentLoaded', () => { loadEmployees(); updateMonthLabels(); });
+        } catch (error) { console.error('Firebase error:', error); }
+    </script>
+    <script>
+        let allEmployees = [];
+        let currentEditId = null;
+        let currentTeamLeader = '';
+        let currentAbsenceEmployee = null;
+        let newAllowancesPending = [];
+
+        function normaliseTL(tl) {
+            if (!tl) return tl;
+            if (/^ftl\s*4$/i.test(tl.trim())) return 'Team Leader 4';
+            return tl;
+        }
+
+        function updateMonthLabels() {
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const monthLabel = months[new Date().getMonth()];
+            ['team-leader-1','team-leader-2','team-leader-3','team-leader-4','back-office'].forEach(id => {
+                const el = document.getElementById(`month-label-${id}`);
+                if (el) el.textContent = monthLabel;
+            });
+        }
+
+        function parseDateDDMMYYYY(dateStr) {
+            if (!dateStr) return null;
+            const parts = dateStr.split('/');
+            if (parts.length === 3) return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+            return new Date(dateStr);
+        }
+
+        function countEmployeesAtDate(teamLeader, targetDate) {
+            return allEmployees.filter(emp => {
+                const leader = normaliseTL(emp['Team Leader'] || emp.teamLeader);
+                if (leader !== teamLeader) return false;
+                const startDateStr = emp.startDate || emp['Start Date'];
+                if (!startDateStr) return false;
+                const startDate = parseDateDDMMYYYY(startDateStr);
+                if (!startDate || startDate > targetDate) return false;
+                if (emp.leaveDate) {
+                    const leaveDate = parseDateDDMMYYYY(emp.leaveDate);
+                    if (leaveDate && leaveDate <= targetDate) return false;
+                }
+                return true;
+            }).length;
+        }
+
+        async function loadEmployees() {
+            try {
+                const { collection, getDocs } = window.firebaseModules;
+                const querySnapshot = await getDocs(collection(window.db, 'employees'));
+                allEmployees = [];
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if (!data.absences) data.absences = [];
+                    if (data['Team Leader']) data['Team Leader'] = normaliseTL(data['Team Leader']);
+                    if (data.teamLeader)    data.teamLeader    = normaliseTL(data.teamLeader);
+                    allEmployees.push({ id: doc.id, ...data });
+                });
+                updateStats();
+                renderEmployeeList();
+            } catch (error) {
+                console.error('Error loading employees:', error);
+                showToast('Error loading employees', 'error');
+            }
+        }
+
+        function updateStats() {
+            const teamLeaders = ['Team Leader 1','Team Leader 2','Team Leader 3','Team Leader 4','Back Office'];
+            // Now includes Core Bravo as a distinct location
+            const locations = ['ECHO','Delta','CORE','Core Bravo'];
+            const startOf2025 = new Date('2025-01-01');
+            const now = new Date();
+            const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+            teamLeaders.forEach(leader => {
+                const teamMembers = allEmployees.filter(emp =>
+                    normaliseTL(emp['Team Leader'] || emp.teamLeader) === leader && !emp.leaveDate
+                );
+                const leaderId = leader.toLowerCase().replace(/ /g, '-');
+                const countEl = document.getElementById(`count-${leaderId}`);
+                if (countEl) countEl.textContent = teamMembers.length;
+                const el2025 = document.getElementById(`headcount-2025-${leaderId}`);
+                const elMonth = document.getElementById(`headcount-month-${leaderId}`);
+                const elToday = document.getElementById(`headcount-today-${leaderId}`);
+                if (el2025) el2025.textContent = countEmployeesAtDate(leader, startOf2025);
+                if (elMonth) elMonth.textContent = countEmployeesAtDate(leader, startOfCurrentMonth);
+                if (elToday) elToday.textContent = countEmployeesAtDate(leader, now);
+
+                if (leader !== 'Back Office') {
+                    locations.forEach(location => {
+                        const locationMembers = teamMembers.filter(emp =>
+                            (emp.Location || emp.location || '') === location
+                        );
+                        // Build the element ID key from the location name
+                        let locKey;
+                        if (location === 'ECHO')            locKey = 'echo';
+                        else if (location === 'Delta') locKey = 'delta';
+                        else if (location === 'CORE')        locKey = 'core';
+                        else if (location === 'Core Bravo') locKey = 'corebravo';
+                        const locEl = document.getElementById(`loc-${leaderId}-${locKey}`);
+                        if (locEl) locEl.textContent = locationMembers.length;
+                    });
+                }
+            });
+        }
+
+        function renderEmployeeList(filter = '') {
+            const listEl = document.getElementById('employee-list');
+            const filtered = allEmployees.filter(emp => (emp['Full Name'] || '').toLowerCase().includes(filter.toLowerCase()));
+            if (filtered.length === 0) { listEl.innerHTML = '<div style="text-align:center; color:var(--text-dim);">No employees found</div>'; return; }
+            listEl.innerHTML = filtered.map(emp => {
+                const name = emp['Full Name'] || 'Unnamed';
+                const leader = normaliseTL(emp['Team Leader'] || emp.teamLeader || '—');
+                const location = emp.Location || emp.location || '—';
+                const startDateObj = parseDateDDMMYYYY(emp.startDate || emp['Start Date']);
+                const start = startDateObj ? startDateObj.toLocaleDateString() : null;
+                const leaveDate = parseDateDDMMYYYY(emp.leaveDate);
+                const leave = leaveDate ? leaveDate.toLocaleDateString() : null;
+                return `<div class="employee-item" onclick="openEditLeaveModal('${emp.id}', '${name.replace(/'/g,"\\'")}')">
+                    <div><div class="employee-name">${name}</div><div class="employee-info">${leader} • ${location}</div>${start ? `<div class="employee-info" style="font-size: 0.8rem;">Started: ${start}</div>` : ''}</div>
+                    ${leave ? `<div class="leave-date">Left: ${leave}</div>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+        function filterEmployees() { renderEmployeeList(document.getElementById('employee-search').value); }
+
+        function populateEmployeeSelect(selectId) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '<option value="">Select Employee</option>';
+            allEmployees.filter(emp => !emp.leaveDate).sort((a,b) => (a['Full Name']||'').localeCompare(b['Full Name']||'')).forEach(emp => {
+                const option = document.createElement('option');
+                option.value = emp.id;
+                option.textContent = emp['Full Name'] || 'Unnamed';
+                select.appendChild(option);
+            });
+        }
+
+        function updateCurrentHolidays() {
+            const empId = document.getElementById('holiday-employee').value;
+            const displayEl = document.getElementById('current-holidays-display');
+            if (!empId) { displayEl.textContent = ''; return; }
+            const emp = allEmployees.find(e => e.id === empId);
+            if (emp) {
+                const remaining = emp.remainingHolidays !== undefined ? emp.remainingHolidays : 'Not set';
+                displayEl.innerHTML = `<strong>Current remaining holidays:</strong> ${remaining} days`;
+            }
+        }
+
+        async function openTeamHolidaysModal(teamLeader) {
+            currentTeamLeader = teamLeader;
+            document.getElementById('team-holidays-title').textContent = teamLeader;
+            document.getElementById('view-mode-select').value = 'holidays';
+            document.getElementById('absence-filter-select').style.display = 'none';
+            refreshTeamView();
+            document.getElementById('team-holidays-modal').classList.add('show');
+        }
+
+        function refreshTeamView() {
+            const viewMode = document.getElementById('view-mode-select').value;
+            const filterType = document.getElementById('absence-filter-select').value;
+            const list = document.getElementById('team-holidays-list');
+            const teamMembers = allEmployees
+                .filter(emp => normaliseTL(emp['Team Leader'] || emp.teamLeader) === currentTeamLeader && !emp.leaveDate)
+                .sort((a,b) => (a['Full Name']||'').localeCompare(b['Full Name']||''));
+            if (viewMode === 'holidays') {
+                document.getElementById('team-holidays-title').textContent = `${currentTeamLeader} – Remaining Holidays`;
+                document.getElementById('absence-filter-select').style.display = 'none';
+                const withHolidays = teamMembers.filter(emp => emp.remainingHolidays >= 0);
+                if (withHolidays.length === 0) { list.innerHTML = '<div style="text-align:center; color:var(--text-dim);">No holiday data available</div>'; return; }
+                list.innerHTML = withHolidays.filter(emp => emp.remainingHolidays > 0).map(emp => `<div class="holiday-item"><div class="employee-name">${emp['Full Name']}</div><div class="holiday-days">${emp.remainingHolidays} days</div></div>`).join('');
+                if (list.innerHTML === '') list.innerHTML = '<div style="text-align:center; color:var(--text-dim);">No one has remaining holidays</div>';
+            } else {
+                document.getElementById('team-holidays-title').textContent = `${currentTeamLeader} – Absences`;
+                document.getElementById('absence-filter-select').style.display = 'inline-block';
+                let absencesList = [];
+                teamMembers.forEach(emp => {
+                    if (emp.absences && emp.absences.length > 0) {
+                        emp.absences.forEach(abs => {
+                            if (filterType === 'all' || abs.type === filterType) {
+                                absencesList.push({ empId: emp.id, name: emp['Full Name'], type: abs.type, date: abs.date, daysOff: abs.daysOff || 0, hoursOff: abs.hoursOff || 0 });
+                            }
+                        });
+                    }
+                });
+                const grouped = {};
+                absencesList.forEach(item => {
+                    if (!grouped[item.name]) grouped[item.name] = { totalDays: 0, details: [] };
+                    grouped[item.name].totalDays += item.daysOff > 0 ? item.daysOff : (item.hoursOff / 8);
+                    grouped[item.name].details.push(item);
+                });
+                const sortedEntries = Object.entries(grouped).sort((a,b) => a[0].localeCompare(b[0]));
+                if (sortedEntries.length === 0) { list.innerHTML = '<div style="text-align:center; color:var(--text-dim);">No absences recorded</div>'; return; }
+                list.innerHTML = sortedEntries.map(([name, data]) => `<div class="holiday-item"><div class="clickable-name" onclick="openAbsenceDetailsModal('${name}', ${JSON.stringify(data.details).split('"').join('&quot;')})">${name}</div><div class="holiday-days">${data.totalDays.toFixed(2)} days</div></div>`).join('');
+            }
+        }
+
+        function openAbsenceDetailsModal(employeeName, details) {
+            document.getElementById('absence-details-title').textContent = `Absences – ${employeeName}`;
+            const list = document.getElementById('absence-details-list');
+            list.innerHTML = details.length === 0 ? '<div style="text-align:center; color:var(--text-dim);">No absence records</div>' : details.map(abs => {
+                let dateFormatted = 'Unknown date';
+                if (abs.date) { const d = new Date(abs.date); dateFormatted = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; }
+                return `<div class="absence-detail-item"><div><strong>Date:</strong> ${dateFormatted}</div><div><strong>Type:</strong> ${abs.type}</div><div><strong>Days off:</strong> ${abs.daysOff}</div><div><strong>Hours off:</strong> ${abs.hoursOff}</div></div>`;
+            }).join('');
+            document.getElementById('absence-details-modal').classList.add('show');
+        }
+
+        function closeAbsenceDetailsModal() { document.getElementById('absence-details-modal').classList.remove('show'); }
+        function closeTeamHolidaysModal() { document.getElementById('team-holidays-modal').classList.remove('show'); }
+        function openUpdateHolidaysModal() { document.getElementById('update-holidays-modal').classList.add('show'); }
+        function closeUpdateHolidaysModal() { document.getElementById('update-holidays-modal').classList.remove('show'); }
+        function openSingleHolidayModal() { closeUpdateHolidaysModal(); populateEmployeeSelect('holiday-employee'); document.getElementById('current-holidays-display').textContent = ''; document.getElementById('single-holiday-modal').classList.add('show'); }
+        function closeSingleHolidayModal() { document.getElementById('single-holiday-modal').classList.remove('show'); document.getElementById('single-holiday-form').reset(); document.getElementById('current-holidays-display').textContent = ''; }
+        function openBulkHolidayCSVModal() { closeUpdateHolidaysModal(); document.getElementById('bulk-holiday-csv-modal').classList.add('show'); }
+        function closeBulkHolidayCSVModal() { document.getElementById('bulk-holiday-csv-modal').classList.remove('show'); document.getElementById('holiday-csv-file').value = ''; }
+
+        async function handleSingleHolidaySubmit(event) {
+            event.preventDefault();
+            const empId = document.getElementById('holiday-employee').value;
+            const daysToDeduct = parseFloat(document.getElementById('holiday-days').value);
+            if (!empId || isNaN(daysToDeduct)) return;
+            try {
+                const emp = allEmployees.find(e => e.id === empId);
+                if (!emp) { showToast('Employee not found', 'error'); return; }
+                const currentRemaining = emp.remainingHolidays !== undefined ? emp.remainingHolidays : 0;
+                const newRemaining = Math.max(0, currentRemaining - daysToDeduct);
+                const { doc, updateDoc } = window.firebaseModules;
+                await updateDoc(doc(window.db, 'employees', empId), { remainingHolidays: newRemaining });
+                showToast(`Deducted ${daysToDeduct} days. New balance: ${newRemaining} days`);
+                closeSingleHolidayModal(); loadEmployees();
+            } catch (error) { console.error(error); showToast('Failed to deduct holiday', 'error'); }
+        }
+
+        function handleHolidayCSVUpload(event) {
+            const file = event.target.files[0]; if (!file) return;
+            Papa.parse(file, { header: true, skipEmptyLines: true, complete: async function(results) {
+                try {
+                    const { doc, updateDoc, getDocs, collection } = window.firebaseModules;
+                    let successCount = 0;
+                    const employeesSnap = await getDocs(collection(window.db, 'employees'));
+                    const employeeMap = {};
+                    employeesSnap.forEach(d => { employeeMap[(d.data()['Full Name']||'').trim()] = d.id; });
+                    for (const row of results.data) {
+                        const name = (row['Full Name']||row['full name']||'').trim();
+                        const days = parseFloat(row['Remaining Holidays']||row['remaining holidays']||row['RemainingHolidays']||'');
+                        if (name && !isNaN(days) && employeeMap[name]) { await updateDoc(doc(window.db, 'employees', employeeMap[name]), { remainingHolidays: days }); successCount++; }
+                    }
+                    showToast(`${successCount} holiday records updated`); closeBulkHolidayCSVModal(); loadEmployees();
+                } catch (error) { console.error(error); showToast('Failed to import holidays CSV', 'error'); }
+            }});
+        }
+
+        function openUpdateAbsencesModal() { document.getElementById('update-absences-modal').classList.add('show'); }
+        function closeUpdateAbsencesModal() { document.getElementById('update-absences-modal').classList.remove('show'); }
+        function openSingleAbsenceModal() { closeUpdateAbsencesModal(); populateEmployeeSelect('absence-employee'); document.getElementById('single-absence-modal').classList.add('show'); }
+        function closeSingleAbsenceModal() { document.getElementById('single-absence-modal').classList.remove('show'); document.getElementById('single-absence-form').reset(); }
+        function openBulkAbsenceCSVModal() { closeUpdateAbsencesModal(); document.getElementById('bulk-absence-csv-modal').classList.add('show'); }
+        function closeBulkAbsenceCSVModal() { document.getElementById('bulk-absence-csv-modal').classList.remove('show'); document.getElementById('absence-csv-file').value = ''; }
+
+        async function handleSingleAbsenceSubmit(event) {
+            event.preventDefault();
+            const empId = document.getElementById('absence-employee').value;
+            const type = document.getElementById('absence-type').value;
+            const date = document.getElementById('absence-date').value;
+            const daysOff = parseFloat(document.getElementById('absence-days').value) || 0;
+            const hoursOff = parseFloat(document.getElementById('absence-hours').value) || 0;
+            if (!empId || !type || !date) return;
+            try {
+                const { doc, updateDoc, arrayUnion } = window.firebaseModules;
+                await updateDoc(doc(window.db, 'employees', empId), { absences: arrayUnion({ type, date, daysOff, hoursOff }) });
+                showToast('Absence recorded'); closeSingleAbsenceModal(); loadEmployees();
+            } catch (error) { console.error(error); showToast('Failed to save absence', 'error'); }
+        }
+
+        function handleAbsenceCSVUpload(event) {
+            const file = event.target.files[0]; if (!file) return;
+            Papa.parse(file, { header: true, skipEmptyLines: true, complete: async function(results) {
+                try {
+                    const { doc, updateDoc, arrayUnion, getDocs, collection } = window.firebaseModules;
+                    let successCount = 0;
+                    const employeesSnap = await getDocs(collection(window.db, 'employees'));
+                    const employeeMap = {};
+                    employeesSnap.forEach(d => { employeeMap[(d.data()['Full Name']||'').trim()] = { id: d.id }; });
+                    for (const row of results.data) {
+                        const name = (row['Full Name']||'').trim();
+                        const type = row['Type of Absence']||'';
+                        const day = parseInt(row['day']||row['Day']||'0');
+                        const month = parseInt(row['month']||row['Month']||'0');
+                        const year = parseInt(row['year']||row['Year']||'0');
+                        const daysOff = parseFloat(row['No. working days off']||'0') || 0;
+                        const hoursOff = parseFloat(row['No. working hours off']||'0') || 0;
+                        if (name && type && day && month && year && employeeMap[name]) {
+                            const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                            await updateDoc(doc(window.db, 'employees', employeeMap[name].id), { absences: arrayUnion({ type, date: dateStr, daysOff, hoursOff }) });
+                            successCount++;
+                        }
+                    }
+                    showToast(`${successCount} absences imported`); closeBulkAbsenceCSVModal(); loadEmployees();
+                } catch (error) { console.error(error); showToast('Failed to import absences CSV', 'error'); }
+            }});
+        }
+
+        function openAddEmployeeModal() { document.getElementById('add-employee-modal').classList.add('show'); }
+        function closeAddEmployeeModal() { document.getElementById('add-employee-modal').classList.remove('show'); document.getElementById('employee-form').reset(); }
+        function openUploadCSVModal() { document.getElementById('upload-csv-modal').classList.add('show'); }
+        function closeUploadCSVModal() { document.getElementById('upload-csv-modal').classList.remove('show'); document.getElementById('csv-file').value = ''; }
+        function openViewEmployeesModal() { renderEmployeeList(); document.getElementById('employee-search').value = ''; document.getElementById('view-employees-modal').classList.add('show'); }
+        function closeViewEmployeesModal() { document.getElementById('view-employees-modal').classList.remove('show'); }
+
+        function openEditLeaveModal(id, name) {
+            currentEditId = id;
+            document.getElementById('edit-employee-name').textContent = name;
+            const emp = allEmployees.find(e => e.id === id);
+            let leaveDateValue = '';
+            if (emp.leaveDate) {
+                const parts = emp.leaveDate.split('/');
+                leaveDateValue = parts.length === 3 ? `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}` : emp.leaveDate;
+            }
+            document.getElementById('leave-date').value = leaveDateValue;
+            closeViewEmployeesModal();
+            document.getElementById('edit-leave-modal').classList.add('show');
+        }
+
+        function closeEditLeaveModal() { document.getElementById('edit-leave-modal').classList.remove('show'); currentEditId = null; }
+
+        async function saveLeaveDate(event) {
+            event.preventDefault();
+            const leaveDateInput = document.getElementById('leave-date').value;
+            let leaveDateToSave = '';
+            if (leaveDateInput) {
+                const parts = leaveDateInput.split('-');
+                leaveDateToSave = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : leaveDateInput;
+            }
+            try {
+                const { doc, updateDoc, deleteField } = window.firebaseModules;
+                const empRef = doc(window.db, 'employees', currentEditId);
+                if (leaveDateToSave) { await updateDoc(empRef, { leaveDate: leaveDateToSave }); showToast('Leave date saved'); }
+                else { await updateDoc(empRef, { leaveDate: deleteField() }); showToast('Leave date cleared'); }
+                closeEditLeaveModal(); loadEmployees();
+            } catch (error) { showToast('Failed to save leave date', 'error'); }
+        }
+
+        async function clearLeaveDate() {
+            try {
+                const { doc, updateDoc, deleteField } = window.firebaseModules;
+                await updateDoc(doc(window.db, 'employees', currentEditId), { leaveDate: deleteField() });
+                showToast('Leave date cleared'); closeEditLeaveModal(); loadEmployees();
+            } catch (error) { showToast('Failed to clear leave date', 'error'); }
+        }
+
+        async function handleAddEmployee(event) {
+            event.preventDefault();
+            const fullName = document.getElementById('full-name').value;
+            const startDate = document.getElementById('start-date').value;
+            const teamLeader = document.getElementById('team-leader').value;
+            const location = document.getElementById('location').value;
+            const remainingHolidays = parseFloat(document.getElementById('remaining-holidays').value);
+            try {
+                const { collection, addDoc } = window.firebaseModules;
+                await addDoc(collection(window.db, 'employees'), { 'Full Name': fullName.trim(), 'startDate': startDate.trim(), 'Team Leader': teamLeader.trim(), 'Location': location.trim(), 'remainingHolidays': remainingHolidays, uploadDate: new Date().toISOString(), absences: [] });
+                showToast('Employee added successfully'); closeAddEmployeeModal(); loadEmployees();
+            } catch (error) { showToast('Failed to add employee', 'error'); }
+        }
+
+        function handleCSVUpload(event) {
+            const file = event.target.files[0]; if (!file) return;
+            Papa.parse(file, { header: true, skipEmptyLines: true, complete: async function(results) {
+                try {
+                    const { collection, addDoc } = window.firebaseModules;
+                    let successCount = 0;
+                    for (const row of results.data) {
+                        const fullName = row['Full Name']||row['full name']||row['FullName']||'';
+                        const startDate = row['Start Date']||row['start date']||row['StartDate']||'';
+                        const teamLeader = row['Team Leader']||row['team leader']||row['TeamLeader']||'';
+                        const location = row['Location']||row['location']||'';
+                        if (fullName && teamLeader && location) {
+                            await addDoc(collection(window.db, 'employees'), { 'Full Name': fullName.trim(), 'startDate': startDate.trim(), 'Team Leader': teamLeader.trim(), 'Location': location.trim(), uploadDate: new Date().toISOString(), absences: [] });
+                            successCount++;
+                        }
+                    }
+                    showToast(`${successCount} employees imported successfully`); closeUploadCSVModal(); loadEmployees();
+                } catch (error) { showToast('Failed to import CSV', 'error'); }
+            }});
+        }
+
+        // 2026/27 Allowances Upload Functions
+        function openNewAllowancesModal() {
+            newAllowancesPending = [];
+            document.getElementById('new-allowances-results').style.display = 'none';
+            document.getElementById('new-allowances-file').value = '';
+            const btn = document.getElementById('na-confirm-btn');
+            btn.disabled = false;
+            btn.textContent = 'Apply Changes to System';
+            document.getElementById('new-allowances-modal').classList.add('show');
+        }
+
+        function closeNewAllowancesModal() {
+            document.getElementById('new-allowances-modal').classList.remove('show');
+        }
+
+        function handleNewAllowancesUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    const matched = [];
+                    const unmatched = [];
+                    results.data.forEach(row => {
+                        const csvName = (row['Full Name'] || row['full name'] || row['FullName'] || '').trim();
+                        const days = parseFloat(row['Remaining Holidays'] || row['remaining holidays'] || row['RemainingHolidays'] || '');
+                        if (!csvName) return;
+                        const emp = allEmployees.find(e =>
+                            (e['Full Name'] || '').trim().toLowerCase() === csvName.toLowerCase()
+                        );
+                        if (emp && !isNaN(days)) {
+                            matched.push({ id: emp.id, name: emp['Full Name'], days });
+                        } else {
+                            unmatched.push({ name: csvName, days, reason: !emp ? 'Name not found in system' : 'Invalid days value' });
+                        }
+                    });
+                    newAllowancesPending = matched;
+                    document.getElementById('na-matched-count').textContent = matched.length;
+                    document.getElementById('na-unmatched-count').textContent = unmatched.length;
+                    document.getElementById('na-matched-list').innerHTML = matched.length
+                        ? matched.map(m => `<div class="na-match-item"><span class="na-item-name">${m.name}</span><span class="na-item-days">${m.days} days</span></div>`).join('')
+                        : '<div style="color:var(--text-dim); font-size:0.85rem; padding:0.5rem;">None matched</div>';
+                    const unmatchedWrap = document.getElementById('na-unmatched-wrap');
+                    if (unmatched.length > 0) {
+                        unmatchedWrap.style.display = 'block';
+                        document.getElementById('na-unmatched-list').innerHTML = unmatched.map(u => `<div class="na-unmatch-item"><span class="na-item-name">${u.name}</span><span class="na-item-err">${u.reason}</span></div>`).join('');
+                    } else {
+                        unmatchedWrap.style.display = 'none';
+                    }
+                    document.getElementById('new-allowances-results').style.display = 'block';
+                    const btn = document.getElementById('na-confirm-btn');
+                    btn.disabled = matched.length === 0;
+                    btn.textContent = 'Apply Changes to System';
+                }
+            });
+        }
+
+        async function applyNewAllowances() {
+            if (newAllowancesPending.length === 0) return;
+            const btn = document.getElementById('na-confirm-btn');
+            btn.disabled = true;
+            btn.textContent = 'Applying...';
+            try {
+                const { doc, updateDoc } = window.firebaseModules;
+                for (const emp of newAllowancesPending) {
+                    await updateDoc(doc(window.db, 'employees', emp.id), { remainingHolidays: emp.days });
+                }
+                showToast(`✓ ${newAllowancesPending.length} allowances updated for 2026/27`);
+                btn.textContent = '✓ Changes Applied';
+                newAllowancesPending = [];
+                loadEmployees();
+            } catch (error) {
+                console.error(error);
+                showToast('Failed to apply allowances', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Apply Changes to System';
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast show' + (type === 'error' ? ' error' : '');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        document.querySelectorAll('.modal').forEach(modal => { modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('show'); }); });
+
+        window.openAddEmployeeModal = openAddEmployeeModal; window.closeAddEmployeeModal = closeAddEmployeeModal;
+        window.openUploadCSVModal = openUploadCSVModal; window.closeUploadCSVModal = closeUploadCSVModal;
+        window.handleAddEmployee = handleAddEmployee; window.handleCSVUpload = handleCSVUpload;
+        window.openViewEmployeesModal = openViewEmployeesModal; window.closeViewEmployeesModal = closeViewEmployeesModal;
+        window.openEditLeaveModal = openEditLeaveModal; window.closeEditLeaveModal = closeEditLeaveModal;
+        window.saveLeaveDate = saveLeaveDate; window.clearLeaveDate = clearLeaveDate;
+        window.openUpdateHolidaysModal = openUpdateHolidaysModal; window.openSingleHolidayModal = openSingleHolidayModal;
+        window.closeSingleHolidayModal = closeSingleHolidayModal; window.openBulkHolidayCSVModal = openBulkHolidayCSVModal;
+        window.closeBulkHolidayCSVModal = closeBulkHolidayCSVModal; window.handleSingleHolidaySubmit = handleSingleHolidaySubmit;
+        window.handleHolidayCSVUpload = handleHolidayCSVUpload; window.openTeamHolidaysModal = openTeamHolidaysModal;
+        window.closeTeamHolidaysModal = closeTeamHolidaysModal; window.refreshTeamView = refreshTeamView;
+        window.openUpdateAbsencesModal = openUpdateAbsencesModal; window.closeUpdateAbsencesModal = closeUpdateAbsencesModal;
+        window.openSingleAbsenceModal = openSingleAbsenceModal; window.closeSingleAbsenceModal = closeSingleAbsenceModal;
+        window.openBulkAbsenceCSVModal = openBulkAbsenceCSVModal; window.closeBulkAbsenceCSVModal = closeBulkAbsenceCSVModal;
+        window.handleSingleAbsenceSubmit = handleSingleAbsenceSubmit; window.handleAbsenceCSVUpload = handleAbsenceCSVUpload;
+        window.openAbsenceDetailsModal = openAbsenceDetailsModal; window.closeAbsenceDetailsModal = closeAbsenceDetailsModal;
+        window.updateCurrentHolidays = updateCurrentHolidays; window.filterEmployees = filterEmployees;
+        window.openNewAllowancesModal = openNewAllowancesModal; window.closeNewAllowancesModal = closeNewAllowancesModal;
+        window.handleNewAllowancesUpload = handleNewAllowancesUpload; window.applyNewAllowances = applyNewAllowances;
+    </script>
+</body>
+</html>

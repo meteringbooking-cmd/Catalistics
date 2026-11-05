@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<!-- Catalistics: shared settings (storage, targets, links). Must load before the page scripts. -->
+<script src="catalistics-settings.js" onerror="this.remove()"></script>
+<script src="catalistics-config.js"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finances Dashboard · Catalistics</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--cx-font); background: #F2F3F3; min-height: 100vh; padding: 0; color: #161E2D; }
+        .header { background: linear-gradient(135deg, #FFFFFF 0%, #F2F3F3 100%); padding: 40px 20px; border-bottom: 1px solid #D5DBDB; box-shadow: 0 1px 2px rgba(0,28,36,0.10); }
+        .header-content { max-width: 1600px; margin: 0 auto; }
+        h1 { font-size: 2.5em; font-weight: 800; background: none; -webkit-background-clip: border-box; -webkit-text-fill-color: currentColor; background-clip: border-box; margin-bottom: 10px; letter-spacing: -0.5px; }
+        .header-subtitle { color: #545B64; font-size: 1.1em; font-weight: 400; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 40px 20px; }
+        .date-selector-wrapper { background: #FFFFFF; padding: 30px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,28,36,0.10); margin-bottom: 40px; border: 1px solid #D5DBDB; }
+        .date-selector { display: flex; gap: 20px; align-items: center; justify-content: center; flex-wrap: wrap; }
+        .date-group { display: flex; flex-direction: column; gap: 8px; }
+        .date-selector label { font-weight: 600; color: #545B64; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; }
+        .date-selector input { padding: 14px 18px; border: 2px solid #D5DBDB; border-radius: 4px; font-size: 15px; outline: none; transition: all 0.3s; background: #F2F3F3; color: #161E2D; font-family: var(--cx-font); font-weight: 500; }
+        .date-selector input:focus { border-color: #0972D3; box-shadow: 0 1px 2px rgba(0,28,36,0.10); }
+        .stats-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 30px; margin-bottom: 40px; }
+        .stat-card { background: linear-gradient(135deg, #FFFFFF 0%, #F2F3F3 100%); padding: 35px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,28,36,0.10); transition: all 0.4s cubic-bezier(0.4,0,0.2,1); border: 1px solid #D5DBDB; position: relative; overflow: hidden; }
+        .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: #F2F8FD; opacity: 0; transition: opacity 0.3s; }
+        .stat-card:hover::before { opacity: 1; }
+        .stat-card:hover { transform: none; box-shadow: 0 1px 2px rgba(0,28,36,0.10); border-color: rgba(9,114,211,0.35); }
+        .stat-card.core::before { background: #F2F8FD; }
+        .stat-card.sp::before { background: #F5F1FB; }
+        .stat-card.Bravo::before { background: #FBF0F4; }
+        .stat-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .stat-icon { width: 50px; height: 50px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .stat-card.core .stat-icon { background: #F2F8FD; color: #0972D3; }
+        .stat-card.sp .stat-icon { background: #F2F8FD; color: #8456CE; }
+        .stat-card.Bravo .stat-icon { background: #F2F8FD; color: #C33D69; }
+        .stat-card h3 { font-size: 0.95em; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #545B64; margin: 0; }
+        .stat-value { font-size: 3em; font-weight: 800; color: #161E2D; margin: 15px 0; letter-spacing: -1px; line-height: 1; }
+        .stat-subtitle { color: #687078; font-size: 0.9em; margin-top: 8px; font-weight: 500; }
+        .forecast-section { margin-top: 20px; padding-top: 20px; border-top: 1px solid #D5DBDB; }
+        .forecast-label { color: #545B64; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-weight: 600; }
+        .forecast { color: #067F68; font-size: 1.5em; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .upload-sections { display: grid; gap: 30px; }
+        .upload-section { background: linear-gradient(135deg, #FFFFFF 0%, #F2F3F3 100%); padding: 40px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,28,36,0.10); border: 1px solid #D5DBDB; transition: all 0.3s; }
+        .upload-section:hover { border-color: rgba(9,114,211,0.35); }
+        .section-header { display: flex; align-items: center; gap: 15px; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #D5DBDB; }
+        .section-icon { width: 50px; height: 50px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: linear-gradient(135deg, #0972D3 0%, #0972D3 100%); color: white; }
+        .upload-section h2 { font-size: 1.5em; font-weight: 700; color: #161E2D; margin: 0; letter-spacing: -0.5px; }
+        .upload-area { display: grid; gap: 25px; }
+        .upload-group { display: flex; flex-direction: column; gap: 10px; }
+        .upload-group label { font-weight: 600; color: #545B64; font-size: 0.9em; letter-spacing: 0.3px; }
+        input[type="file"] { padding: 18px; border: 2px dashed #D5DBDB; border-radius: 4px; cursor: pointer; background: #FFFFFF; transition: all 0.3s; color: #545B64; font-family: var(--cx-font); font-weight: 500; }
+        input[type="file"]:hover { background: rgba(9,114,211,0.017); border-color: #0972D3; }
+        input[type="file"]::file-selector-button { padding: 10px 20px; background: linear-gradient(135deg, #0972D3 0%, #0972D3 100%); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; margin-right: 15px; transition: all 0.3s; }
+        input[type="date"], input[type="number"], select { padding: 14px 18px; border: 2px solid #D5DBDB; border-radius: 4px; font-size: 15px; outline: none; transition: all 0.3s; background: #F2F3F3; color: #161E2D; font-family: var(--cx-font); font-weight: 500; }
+        input[type="date"]:focus, input[type="number"]:focus, select:focus { border-color: #0972D3; box-shadow: 0 1px 2px rgba(0,28,36,0.10); }
+        select { cursor: pointer; }
+        .btn { padding: 16px 36px; background: linear-gradient(135deg, #0972D3 0%, #0972D3 100%); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 700; transition: all 0.3s; box-shadow: 0 1px 2px rgba(0,28,36,0.10); letter-spacing: 0.3px; text-transform: uppercase; font-family: var(--cx-font); }
+        .btn:hover { transform: none; box-shadow: 0 1px 2px rgba(0,28,36,0.10); }
+        .manual-entry-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 25px; }
+        .status-message { padding: 18px 24px; border-radius: 4px; margin-top: 20px; display: none; font-weight: 500; animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .status-message.success { background: #F0F8F6; color: #067F68; border: 1px solid rgba(6,127,104,0.35); }
+        .status-message.error { background: #FDF3F1; color: #D13212; border: 1px solid rgba(209,50,18,0.35); }
+
+        /* Dynamic manual entry field hint */
+        .field-hint { font-size: 0.8em; color: #687078; margin-top: 4px; font-style: italic; }
+
+        @media (max-width: 768px) { .stats-container { grid-template-columns: 1fr; } h1 { font-size: 2em; } .stat-value { font-size: 2.5em; } }
+    </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="catalistics-theme.css">
+<script src="catalistics-shell.js" defer></script>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content" style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <h1>Finances Dashboard</h1>
+                <div class="header-subtitle">Financial tracking and forecasting</div>
+            </div>
+            <img src="assets/catalistics-logo-dark.png" data-cx-page-logo alt="Catalistics Logo" style="height:60px;opacity:0.9;">
+        </div>
+    </div>
+    <div class="container">
+        <div class="date-selector-wrapper">
+            <div class="date-selector">
+                <div class="date-group"><label for="startDate">Start Date</label><input type="date" id="startDate"></div>
+                <div class="date-group"><label for="endDate">End Date</label><input type="date" id="endDate"></div>
+                <button class="btn" onclick="updateDashboard()">Update Dashboard</button>
+            </div>
+        </div>
+        <div class="stats-container">
+            <div class="stat-card core">
+                <div class="stat-header"><div class="stat-icon"></div><h3>Core Contract</h3></div>
+                <div class="stat-value">&#163;<span id="coreTotal">0.00</span></div>
+                <div class="stat-subtitle">Current Period Revenue</div>
+                <div class="forecast-section">
+                    <div class="forecast-label">Month-End Forecast</div>
+                    <div class="forecast"><span>&#128200;</span>&#163;<span id="coreForecast">0.00</span></div>
+                    <div style="margin-top:15px;padding-top:15px;border-top: 1px solid #D5DBDB;">
+                        <div style="color: #545B64;font-size:0.85em;margin-bottom:5px;">Predicted Outgoings: <span style="color: #8D6605;font-weight:600;">&#163;<span id="coreOutgoings">0.00</span></span></div>
+                        <div style="color: #545B64;font-size:0.85em;margin-bottom:5px;">Previous Month End Forecast: <span style="color: #161E2D;font-weight:600;">&#163;<span id="corePrevForecast">0.00</span></span></div>
+                        <div style="color: #545B64;font-size:0.85em;">Previous Month Outgoings: <span style="color: #161E2D;font-weight:600;">&#163;<span id="corePrevOutgoings">0.00</span></span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card sp">
+                <div class="stat-header"><div class="stat-icon"></div><h3>Delta Contract</h3></div>
+                <div class="stat-value">&#163;<span id="spTotal">0.00</span></div>
+                <div class="stat-subtitle">Current Period Revenue</div>
+                <div class="forecast-section">
+                    <div class="forecast-label">Month-End Forecast</div>
+                    <div class="forecast"><span>&#128200;</span>&#163;<span id="spForecast">0.00</span></div>
+                    <div style="margin-top:15px;padding-top:15px;border-top: 1px solid #D5DBDB;">
+                        <div style="color: #545B64;font-size:0.85em;margin-bottom:5px;">Predicted Outgoings: <span style="color: #8D6605;font-weight:600;">&#163;<span id="spOutgoings">0.00</span></span></div>
+                        <div style="color: #545B64;font-size:0.85em;margin-bottom:5px;">Previous Month End Forecast: <span style="color: #161E2D;font-weight:600;">&#163;<span id="spPrevForecast">0.00</span></span></div>
+                        <div style="color: #545B64;font-size:0.85em;">Previous Month Outgoings: <span style="color: #161E2D;font-weight:600;">&#163;<span id="spPrevOutgoings">0.00</span></span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card Bravo">
+                <div class="stat-header"><div class="stat-icon"></div><h3>Bravo Contract</h3></div>
+                <div class="stat-value">&#163;<span id="BravoTotal">0.00</span></div>
+                <div class="stat-subtitle">Current Period Revenue</div>
+                <div class="forecast-section">
+                    <div class="forecast-label">Month-End Forecast</div>
+                    <div class="forecast"><span>&#128200;</span>&#163;<span id="BravoForecast">0.00</span></div>
+                    <div style="margin-top:15px;padding-top:15px;border-top: 1px solid #D5DBDB;">
+                        <div style="color: #545B64;font-size:0.85em;margin-bottom:5px;">Predicted Outgoings: <span style="color: #8D6605;font-weight:600;">&#163;<span id="BravoOutgoings">0.00</span></span></div>
+                        <div style="color: #545B64;font-size:0.85em;margin-bottom:5px;">Previous Month End Forecast: <span style="color: #161E2D;font-weight:600;">&#163;<span id="BravoPrevForecast">0.00</span></span></div>
+                        <div style="color: #545B64;font-size:0.85em;">Previous Month Outgoings: <span style="color: #161E2D;font-weight:600;">&#163;<span id="BravoPrevOutgoings">0.00</span></span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="upload-sections">
+            <div class="upload-section">
+                <div class="section-header"><div class="section-icon"></div><h2>Upload Delta Data</h2></div>
+                <div class="upload-area">
+                    <div class="upload-group"><label>Select Date (Data applies to)</label><input type="date" id="spDate"></div>
+                    <div class="upload-group"><label>Excel/CSV File (Columns: Date | Job Type | Outcome Resource | Job Status | Value)</label><input type="file" id="spFile" accept=".xlsx,.xls,.csv"></div>
+                    <button class="btn" onclick="uploadSPData()">Upload Delta Data</button>
+                    <div id="spStatus" class="status-message"></div>
+                </div>
+            </div>
+            <div class="upload-section">
+                <div class="section-header"><div class="section-icon"></div><h2>Upload Core Data</h2></div>
+                <div class="upload-area">
+                    <div class="upload-group"><label>Select Date (Data applies to)</label><input type="date" id="coreDate"></div>
+                    <div class="upload-group"><label>Excel/CSV File (Columns: Team Leader | Engineer | Value)</label><input type="file" id="coreFile" accept=".xlsx,.xls,.csv"></div>
+                    <button class="btn" onclick="uploadOESData()">Upload Core Data</button>
+                    <div id="coreStatus" class="status-message"></div>
+                </div>
+            </div>
+            <div class="upload-section">
+                <div class="section-header"><div class="section-icon"></div><h2>Manual Entry</h2></div>
+                <div class="upload-area">
+                    <div class="manual-entry-grid">
+                        <div class="upload-group"><label>Date</label><input type="date" id="manualDate"></div>
+                        <div class="upload-group"><label>Contract</label>
+                            <select id="manualContract" onchange="handleContractChange()">
+                                <option value="Delta">Delta (&#163;405/day)</option>
+                                <option value="Bravo">Bravo (direct value)</option>
+                            </select>
+                        </div>
+                        <!-- Days field: shown for Delta -->
+                        <div class="upload-group" id="daysField">
+                            <label>Days</label>
+                            <input type="number" id="manualDays" min="0" step="0.5" placeholder="0.0">
+                            <span class="field-hint">Calculated at &#163;405/day</span>
+                        </div>
+                        <!-- Direct value field: shown for Bravo -->
+                        <div class="upload-group" id="valueField" style="display:none;">
+                            <label>Amount (&#163;)</label>
+                            <input type="number" id="manualValue" min="0" step="0.01" placeholder="0.00">
+                            <span class="field-hint">Enter the total monetary value directly</span>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="addManualEntry()">Add Manual Entry</button>
+                    <div id="manualStatus" class="status-message"></div>
+                </div>
+            </div>
+            <div class="upload-section">
+                <div class="section-header"><div class="section-icon"></div><h2>Set Forecast End Value</h2></div>
+                <div class="upload-area">
+                    <div class="manual-entry-grid">
+                        <div class="upload-group"><label>Month</label><input type="month" id="forecastMonth"></div>
+                        <div class="upload-group"><label>Contract</label><select id="forecastContract"><option value="CORE">CORE</option><option value="Delta">Delta</option><option value="Bravo">Bravo</option></select></div>
+                        <div class="upload-group"><label>Forecast End Value (&#163;)</label><input type="number" id="forecastValue" min="0" step="0.01" placeholder="0.00"></div>
+                    </div>
+                    <button class="btn" onclick="addForecastEnd()">Submit Forecast</button>
+                    <div id="forecastStatus" class="status-message"></div>
+                </div>
+            </div>
+            <div class="upload-section">
+                <div class="section-header"><div class="section-icon"></div><h2>Set Engineer Predicted Outgoings</h2></div>
+                <div class="upload-area">
+                    <div class="manual-entry-grid">
+                        <div class="upload-group"><label>Month</label><input type="month" id="outgoingsMonth"></div>
+                        <div class="upload-group"><label>Contract</label><select id="outgoingsContract"><option value="CORE">CORE</option><option value="Delta">Delta</option><option value="Bravo">Bravo</option></select></div>
+                        <div class="upload-group"><label>Predicted Outgoings (&#163;)</label><input type="number" id="outgoingsValue" min="0" step="0.01" placeholder="0.00"></div>
+                    </div>
+                    <button class="btn" onclick="addOutgoings()">Submit Outgoings</button>
+                    <div id="outgoingsStatus" class="status-message"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        const firebaseConfig = CATALISTICS.firebaseConfig('primary');
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        window.db = db;
+        window.addDoc = addDoc;
+        window.collection = collection;
+        window.serverTimestamp = serverTimestamp;
+        window.getDocs = getDocs;
+        initializeDashboard();
+    </script>
+    <script>
+        function handleContractChange() {
+            const contract = document.getElementById('manualContract').value;
+            const daysField = document.getElementById('daysField');
+            const valueField = document.getElementById('valueField');
+            if (contract === 'Bravo') {
+                daysField.style.display = 'none';
+                valueField.style.display = 'flex';
+                document.getElementById('manualDays').value = '';
+            } else {
+                daysField.style.display = 'flex';
+                valueField.style.display = 'none';
+                document.getElementById('manualValue').value = '';
+            }
+        }
+
+        function initializeDashboard() {
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            const currentMonth = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+            document.getElementById('startDate').valueAsDate = firstDay;
+            document.getElementById('endDate').valueAsDate = lastDay;
+            document.getElementById('manualDate').valueAsDate = today;
+            document.getElementById('coreDate').valueAsDate = today;
+            document.getElementById('spDate').valueAsDate = today;
+            document.getElementById('forecastMonth').value = currentMonth;
+            document.getElementById('outgoingsMonth').value = currentMonth;
+            updateDashboard();
+        }
+
+        async function updateDashboard() {
+            const startDate = new Date(document.getElementById('startDate').value);
+            startDate.setHours(0, 0, 0, 0);
+            const endDate = new Date(document.getElementById('endDate').value);
+            endDate.setHours(23, 59, 59, 999);
+
+            const prevMonthStart = new Date(startDate.getFullYear(), startDate.getMonth() - 1, 1);
+            prevMonthStart.setHours(0, 0, 0, 0);
+            const prevMonthEnd = new Date(startDate.getFullYear(), startDate.getMonth(), 0);
+            prevMonthEnd.setHours(23, 59, 59, 999);
+
+            const currentMonthStr = startDate.getFullYear() + '-' + String(startDate.getMonth() + 1).padStart(2, '0');
+            const previousMonthStr = prevMonthStart.getFullYear() + '-' + String(prevMonthStart.getMonth() + 1).padStart(2, '0');
+
+            try {
+                const querySnapshot = await getDocs(collection(window.db, "all contract financial"));
+
+                let coreTotal = 0, spTotal = 0, BravoTotal = 0;
+                let coreDates = new Set(), spDates = new Set(), BravoDates = new Set();
+                let corePrevTotal = 0, spPrevTotal = 0, BravoPrevTotal = 0;
+                let corePrevDates = new Set(), spPrevDates = new Set(), BravoPrevDates = new Set();
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    let docDate;
+                    if (data.date && data.date.toDate) { docDate = data.date.toDate(); }
+                    else if (data.date instanceof Date) { docDate = data.date; }
+                    else { docDate = new Date(data.date); }
+                    const value = parseFloat(data.value) || 0;
+                    const dateKey = docDate.toDateString();
+
+                    if (docDate >= startDate && docDate <= endDate) {
+                        if (data.contract === 'CORE') { coreTotal += value; coreDates.add(dateKey); }
+                        else if (data.contract === 'Delta') { spTotal += value; spDates.add(dateKey); }
+                        else if (data.contract === 'Bravo') { BravoTotal += value; BravoDates.add(dateKey); }
+                    }
+                    if (docDate >= prevMonthStart && docDate <= prevMonthEnd) {
+                        if (data.contract === 'CORE') { corePrevTotal += value; corePrevDates.add(dateKey); }
+                        else if (data.contract === 'Delta') { spPrevTotal += value; spPrevDates.add(dateKey); }
+                        else if (data.contract === 'Bravo') { BravoPrevTotal += value; BravoPrevDates.add(dateKey); }
+                    }
+                });
+
+                const totalWorkingDays = getWeekdaysInRange(startDate, endDate);
+                const today = new Date();
+const elapsedWorkingDays = getWeekdaysInRange(startDate, today < endDate ? today : endDate);
+const coreForecast = elapsedWorkingDays > 0 ? (coreTotal / elapsedWorkingDays) * totalWorkingDays : 0;
+const spForecast  = elapsedWorkingDays > 0 ? (spTotal  / elapsedWorkingDays) * totalWorkingDays : 0;
+const BravoForecast = elapsedWorkingDays > 0 ? (BravoTotal / elapsedWorkingDays) * totalWorkingDays : 0;
+
+                const prevMonthWorkingDays = getWeekdaysInRange(prevMonthStart, prevMonthEnd);
+                const corePrevForecast = corePrevDates.size > 0 ? (corePrevTotal / corePrevDates.size) * prevMonthWorkingDays : 0;
+                const spPrevForecast  = spPrevDates.size  > 0 ? (spPrevTotal  / spPrevDates.size)  * prevMonthWorkingDays : 0;
+                const BravoPrevForecast = BravoPrevDates.size > 0 ? (BravoPrevTotal / BravoPrevDates.size) * prevMonthWorkingDays : 0;
+
+                const outgoingsSnapshot = await getDocs(collection(window.db, "outgoings data"));
+                let currentOutgoings = {CORE:0, Delta:0, Bravo:0};
+                let previousOutgoings = {CORE:0, Delta:0, Bravo:0};
+                outgoingsSnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if (data.month === currentMonthStr) currentOutgoings[data.contract] = parseFloat(data.outgoingsValue) || 0;
+                    else if (data.month === previousMonthStr) previousOutgoings[data.contract] = parseFloat(data.outgoingsValue) || 0;
+                });
+
+                const fmt = v => v.toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:2});
+                document.getElementById('coreTotal').textContent = fmt(coreTotal);
+                document.getElementById('spTotal').textContent  = fmt(spTotal);
+                document.getElementById('BravoTotal').textContent = fmt(BravoTotal);
+                document.getElementById('coreForecast').textContent = fmt(coreForecast);
+                document.getElementById('spForecast').textContent  = fmt(spForecast);
+                document.getElementById('BravoForecast').textContent = fmt(BravoForecast);
+                document.getElementById('coreOutgoings').textContent = fmt(currentOutgoings.CORE);
+                document.getElementById('spOutgoings').textContent  = fmt(currentOutgoings.Delta);
+                document.getElementById('BravoOutgoings').textContent = fmt(currentOutgoings.Bravo);
+                document.getElementById('corePrevForecast').textContent = fmt(corePrevForecast);
+                document.getElementById('spPrevForecast').textContent  = fmt(spPrevForecast);
+                document.getElementById('BravoPrevForecast').textContent = fmt(BravoPrevForecast);
+                document.getElementById('corePrevOutgoings').textContent = fmt(previousOutgoings.CORE);
+                document.getElementById('spPrevOutgoings').textContent  = fmt(previousOutgoings.Delta);
+                document.getElementById('BravoPrevOutgoings').textContent = fmt(previousOutgoings.Bravo);
+
+            } catch (error) {
+                console.error("Error updating dashboard:", error);
+                showStatus('Error loading data: ' + error.message, 'error', 'spStatus');
+            }
+        }
+
+        function getWeekdaysInRange(startDate, endDate) {
+            let count = 0;
+            let current = new Date(startDate);
+            while (current <= endDate) {
+                const day = current.getDay();
+                if (day !== 0 && day !== 6) count++;
+                current.setDate(current.getDate() + 1);
+            }
+            return count;
+        }
+
+        async function uploadSPData() {
+            const dateInput = document.getElementById('spDate').value;
+            const fileInput = document.getElementById('spFile');
+            if (!dateInput) { showStatus('Please select a date', 'error', 'spStatus'); return; }
+            if (!fileInput.files.length) { showStatus('Please select a file', 'error', 'spStatus'); return; }
+            const selectedDate = new Date(dateInput);
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
+                    let savedCount = 0;
+                    for (let i = 1; i < rows.length; i++) {
+                        const row = rows[i];
+                        if (row.length < 5) continue;
+                        const jobStatus = row[3], valueRaw = row[4];
+                        let value = typeof valueRaw === 'number' ? valueRaw : parseFloat((valueRaw||'').toString().replace(/[£$,\s]/g,''))||0;
+                        if (jobStatus && jobStatus.toString().toLowerCase() === 'completed') {
+                            await addDoc(collection(window.db, "all contract financial"), { contract:'Delta', date:selectedDate, jobType:row[1], outcomeResource:row[2], jobStatus, value, timestamp:serverTimestamp() });
+                            savedCount++;
+                        }
+                    }
+                    showStatus('Successfully uploaded ' + savedCount + ' Delta records for ' + selectedDate.toLocaleDateString('en-GB'), 'success', 'spStatus');
+                    updateDashboard(); fileInput.value = '';
+                } catch (error) { showStatus('Error processing file: ' + error.message, 'error', 'spStatus'); }
+            };
+            reader.readAsArrayBuffer(fileInput.files[0]);
+        }
+
+        async function uploadOESData() {
+            const dateInput = document.getElementById('coreDate').value;
+            const fileInput = document.getElementById('coreFile');
+            if (!dateInput) { showStatus('Please select a date', 'error', 'coreStatus'); return; }
+            if (!fileInput.files.length) { showStatus('Please select a file', 'error', 'coreStatus'); return; }
+            const selectedDate = new Date(dateInput);
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
+                    let savedCount = 0;
+                    for (let i = 1; i < rows.length; i++) {
+                        const row = rows[i];
+                        if (row.length < 3) continue;
+                        const valueRaw = row[2];
+                        let value = typeof valueRaw === 'number' ? valueRaw : parseFloat((valueRaw||'').toString().replace(/[£$,\s]/g,''))||0;
+                        await addDoc(collection(window.db, "all contract financial"), { contract:'CORE', date:selectedDate, teamLeader:row[0], engineer:row[1], value, timestamp:serverTimestamp() });
+                        savedCount++;
+                    }
+                    showStatus('Successfully uploaded ' + savedCount + ' Core records for ' + selectedDate.toLocaleDateString('en-GB'), 'success', 'coreStatus');
+                    updateDashboard(); fileInput.value = '';
+                } catch (error) { showStatus('Error processing file: ' + error.message, 'error', 'coreStatus'); }
+            };
+            reader.readAsArrayBuffer(fileInput.files[0]);
+        }
+
+        async function addManualEntry() {
+            const dateInput = document.getElementById('manualDate').value;
+            const contract = document.getElementById('manualContract').value;
+            if (!dateInput) { showStatus('Please fill in all fields', 'error', 'manualStatus'); return; }
+
+            let value, successMsg;
+
+            if (contract === 'Bravo') {
+                // Direct monetary value entry
+                value = parseFloat(document.getElementById('manualValue').value);
+                if (!value || value <= 0) { showStatus('Please enter a valid amount', 'error', 'manualStatus'); return; }
+                successMsg = 'Successfully added Bravo entry: £' + value.toFixed(2);
+                try {
+                    await addDoc(collection(window.db, "all contract financial"), {
+                        contract, date: new Date(dateInput), value, manualEntry: true, timestamp: serverTimestamp()
+                    });
+                } catch (error) { showStatus('Error adding entry: ' + error.message, 'error', 'manualStatus'); return; }
+            } else {
+                // Days × rate entry (Delta)
+                const days = parseFloat(document.getElementById('manualDays').value);
+                if (!days || days <= 0) { showStatus('Please enter a valid number of days', 'error', 'manualStatus'); return; }
+                const rate = 405;
+                value = days * rate;
+                successMsg = 'Successfully added ' + contract + ' entry: ' + days + ' days x £' + rate + ' = £' + value.toFixed(2);
+                try {
+                    await addDoc(collection(window.db, "all contract financial"), {
+                        contract, date: new Date(dateInput), days, rate, value, manualEntry: true, timestamp: serverTimestamp()
+                    });
+                } catch (error) { showStatus('Error adding entry: ' + error.message, 'error', 'manualStatus'); return; }
+            }
+
+            showStatus(successMsg, 'success', 'manualStatus');
+            updateDashboard();
+            document.getElementById('manualDays').value = '';
+            document.getElementById('manualValue').value = '';
+        }
+
+        async function addForecastEnd() {
+            const monthInput = document.getElementById('forecastMonth').value;
+            const contract = document.getElementById('forecastContract').value;
+            const value = parseFloat(document.getElementById('forecastValue').value);
+            if (!monthInput || !value || value < 0) { showStatus('Please fill in all fields', 'error', 'forecastStatus'); return; }
+            try {
+                await addDoc(collection(window.db, "forecast data"), { contract, month:monthInput, forecastValue:value, timestamp:serverTimestamp() });
+                showStatus('Successfully set ' + contract + ' forecast for ' + monthInput + ': £' + value.toFixed(2), 'success', 'forecastStatus');
+                updateDashboard(); document.getElementById('forecastValue').value = '';
+            } catch (error) { showStatus('Error adding forecast: ' + error.message, 'error', 'forecastStatus'); }
+        }
+
+        async function addOutgoings() {
+            const monthInput = document.getElementById('outgoingsMonth').value;
+            const contract = document.getElementById('outgoingsContract').value;
+            const value = parseFloat(document.getElementById('outgoingsValue').value);
+            if (!monthInput || !value || value < 0) { showStatus('Please fill in all fields', 'error', 'outgoingsStatus'); return; }
+            try {
+                await addDoc(collection(window.db, "outgoings data"), { contract, month:monthInput, outgoingsValue:value, timestamp:serverTimestamp() });
+                showStatus('Successfully set ' + contract + ' outgoings for ' + monthInput + ': £' + value.toFixed(2), 'success', 'outgoingsStatus');
+                updateDashboard(); document.getElementById('outgoingsValue').value = '';
+            } catch (error) { showStatus('Error adding outgoings: ' + error.message, 'error', 'outgoingsStatus'); }
+        }
+
+        function showStatus(message, type, elementId) {
+            const el = document.getElementById(elementId);
+            el.textContent = message; el.className = 'status-message ' + type; el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 5000);
+        }
+
+        window.uploadSPData = uploadSPData;
+        window.uploadOESData = uploadOESData;
+        window.addManualEntry = addManualEntry;
+        window.addForecastEnd = addForecastEnd;
+        window.addOutgoings = addOutgoings;
+        window.updateDashboard = updateDashboard;
+        window.handleContractChange = handleContractChange;
+    </script>
+</body>
+</html>
